@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmodSync, lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import type { Environment } from '../environment/types.js';
 import type { Overrides, Profile, Project } from './config.js';
 import { resolveProfile } from './config.js';
 import type { IssueSnapshot } from './github.js';
@@ -96,8 +97,16 @@ export class QueueStore {
             );
             PRAGMA user_version=1;
           `);
-        } else if (version !== 1)
+        } else if (version !== 1 && version !== 2)
           throw new Error('Unsupported state schema version');
+        this.#db.exec(`
+          CREATE TABLE IF NOT EXISTS environments (
+            task_id TEXT PRIMARY KEY REFERENCES tasks(id),
+            attempt_id TEXT NOT NULL UNIQUE REFERENCES attempts(id),
+            payload TEXT NOT NULL
+          );
+          PRAGMA user_version=2;
+        `);
       });
     } catch (error) {
       this.#db.close();
@@ -188,6 +197,10 @@ export class QueueStore {
           JSON.stringify(task.project) === JSON.stringify(project) &&
           JSON.stringify(task.profile) === JSON.stringify(profile);
         if (same) return task;
+        if (this.environment(task.id))
+          throw new Error(
+            'Cannot replace approval for a task with a retained environment',
+          );
         if (!['queued', 'blocked'].includes(task.status))
           throw new Error(
             'Cannot replace approval for a started or terminal task',
@@ -286,6 +299,86 @@ export class QueueStore {
       this.#event(id, 'claimed', { attemptId, snapshot });
       return { attemptId, token, task };
     });
+  }
+  environment(id: string): Environment | null {
+    this.get(id);
+    const row = this.#db
+      .prepare('SELECT payload FROM environments WHERE task_id=?')
+      .get(id);
+    return row ? (JSON.parse(String(row.payload)) as Environment) : null;
+  }
+  environmentOwner(id: string): { attemptId: string; token: string } {
+    const environment = this.environment(id);
+    const row = this.#db
+      .prepare(
+        'SELECT id,token FROM attempts WHERE task_id=? AND finished_at IS NULL',
+      )
+      .get(id);
+    if (!environment || row?.id !== environment.attemptId)
+      throw new Error('No active environment reservation');
+    return { attemptId: String(row.id), token: String(row.token) };
+  }
+  reserveEnvironment(environment: Environment, token: string): void {
+    this.#transaction(() => {
+      this.#assertOwner(environment.taskId, environment.attemptId, token);
+      this.#db
+        .prepare(
+          'INSERT INTO environments(task_id,attempt_id,payload) VALUES(?,?,?)',
+        )
+        .run(
+          environment.taskId,
+          environment.attemptId,
+          JSON.stringify(environment),
+        );
+      this.#event(environment.taskId, 'environment-reserved', environment);
+    });
+  }
+  saveEnvironment(environment: Environment, token: string): void {
+    this.#transaction(() => {
+      this.#assertOwner(environment.taskId, environment.attemptId, token);
+      const prior = this.environment(environment.taskId);
+      if (
+        !prior ||
+        prior.owner !== environment.owner ||
+        prior.attemptId !== environment.attemptId
+      )
+        throw new Error('Environment ownership mismatch');
+      this.#db
+        .prepare('UPDATE environments SET payload=? WHERE task_id=?')
+        .run(JSON.stringify(environment), environment.taskId);
+      this.#event(environment.taskId, 'environment-stage', environment);
+      if (environment.status === 'ready') {
+        this.#db
+          .prepare('UPDATE attempts SET finished_at=?,outcome=? WHERE id=?')
+          .run(
+            environment.updatedAt,
+            'environment-ready',
+            environment.attemptId,
+          );
+        const task = this.get(environment.taskId);
+        Object.assign(task, {
+          status: 'queued',
+          updatedAt: environment.updatedAt,
+        });
+        this.#save(task);
+      }
+    });
+  }
+  assertEnvironmentOwner(id: string, attemptId: string, token: string): void {
+    this.#assertOwner(id, attemptId, token);
+  }
+  #assertOwner(id: string, attemptId: string, token: string): void {
+    const row = this.#db
+      .prepare(
+        'SELECT id,token FROM attempts WHERE task_id=? AND finished_at IS NULL',
+      )
+      .get(id);
+    if (
+      row?.id !== attemptId ||
+      row.token !== token ||
+      this.get(id).status !== 'running'
+    )
+      throw new Error('Active attempt ownership is required');
   }
   transition(
     id: string,

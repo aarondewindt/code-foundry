@@ -152,6 +152,8 @@ The [approved-ticket CLI guide](docs/queue.md) covers project/profile configurat
 explicit approval, GitHub issue intake, SQLite state, inspection and manual claims.
 State uses Node 26's built-in SQLite driver. Claims persist across restart; the CLI
 does not launch an agent or implement unattended recovery.
+The [environment preparation guide](docs/environments.md) covers the new #4 CLI,
+resource ownership, synthetic PostgreSQL service and pending host integration.
 
 [GitHub issues](https://github.com/aarondewindt/code-foundry/issues) are the detailed
 roadmap. [A1](docs/opencode-ollama.md) records supervised representative OpenCode
@@ -163,7 +165,7 @@ OpenCode trial passed. The shared development container remains **NO-GO** for
 unattended agents. B2/B3 must implement the demonstrated controls and fail-closed
 readiness before execution is enabled. See the
 [A2 host procedure](docs/experiments/a2/host-procedure.md) for evidence and limits;
-no repeat host check is currently needed for this exact profile. Imported host
+the new #4 implementation requires its own host verification before acceptance. Imported host
 exports belong under ignored `scratch/`; lint/format checks exclude them and
 Vitest discovers only repository tests under `test/`.
 

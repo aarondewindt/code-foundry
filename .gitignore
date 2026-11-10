@@ -15,3 +15,7 @@ coverage/
 *.sqlite3-*
 .DS_Store
 scratch/*
+
+# Python runtime/test bytecode
+__pycache__/
+*.pyc

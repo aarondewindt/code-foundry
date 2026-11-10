@@ -93,8 +93,15 @@ can be cancelled with an explicit reason. Terminal tasks cannot be moved back to
 running. This state API cannot prove external process termination: actual worker
 pause/takeover and restart reconciliation belong to B4, and must verify termination
 before releasing ownership. Never use a manual transition to release a real agent
-that could still be writing. No agent process exists in this phase.
+that could still be writing. The environment-preparation extension can now start bounded readiness probes and
+a retained synthetic database service; see [environment preparation](environments.md).
+Verify exact worker termination before releasing a preparation reservation.
 
 GitHub write authorization/auditing has no implemented mutation path in B1. Future
 write operations must be separately authorized and audited by the supervisor.
 No worker, auto-push, PR publication, cleanup or deployment is included.
+
+Environment preparation uses a separate durable environment record and finishes
+its manual reservation before returning a ready task to `queued`. A coding claim
+is separate and no coding process is launched. Use `environment <id>` to inspect
+preparation status; queue status alone is not environment readiness.

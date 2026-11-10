@@ -1,3 +1,5 @@
+import { EnvironmentManager } from '../environment/manager.js';
+import { readEnvironmentConfig } from '../environment/system.js';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -10,6 +12,11 @@ import type { Status } from './store.js';
 export const queueUsage = `Queue commands (JSON output):
   enqueue <issue URL | owner/repo#number | number> --config <file> --approved-by <source>
     [--profile <name>] [--model <model>] [--runtime-seconds <seconds>]
+  prepare <id> --environment-config <file>
+  environment <id>
+  environment-owner <id>       Supervisor-only recovery token
+  readiness <id>
+  recover-environment <id> --attempt <id> --token <token>
   queue
   task <id>
   events <id>
@@ -35,11 +42,17 @@ export function queueCommand(args: string[]): unknown {
       reason: { type: 'string' },
       attempt: { type: 'string' },
       token: { type: 'string' },
+      'environment-config': { type: 'string' },
     },
   });
   const [command, subject, target] = positionals;
   const allowed: Record<string, string[]> = {
     enqueue: ['config', 'approved-by', 'profile', 'model', 'runtime-seconds'],
+    prepare: ['environment-config'],
+    environment: [],
+    'environment-owner': [],
+    readiness: [],
+    'recover-environment': ['attempt', 'token'],
     queue: [],
     task: [],
     events: [],
@@ -88,7 +101,37 @@ export function queueCommand(args: string[]): unknown {
   }
   const store = new QueueStore(db);
   try {
+    const manager = new EnvironmentManager(store, db);
     switch (command) {
+      case 'prepare': {
+        if (!values['environment-config'])
+          throw new Error('prepare requires --environment-config');
+        const config = readEnvironmentConfig(
+          resolve(values['environment-config']),
+        );
+        const task = store.get(subject!);
+        return manager.prepare(
+          task.id,
+          fetchIssue({ repository: task.repository, number: task.number }),
+          config,
+        );
+      }
+      case 'environment-owner':
+        return store.environmentOwner(subject!);
+      case 'environment':
+        return store.environment(subject!);
+      case 'readiness': {
+        const environment = store.environment(subject!);
+        if (!environment) throw new Error('No environment reserved');
+        return manager.check(environment);
+      }
+      case 'recover-environment': {
+        if (!values.attempt || !values.token)
+          throw new Error('Recovery requires active --attempt and --token');
+        const environment = store.environment(subject!);
+        if (!environment) throw new Error('No environment reserved');
+        return manager.recover(environment, values.attempt, values.token);
+      }
       case 'enqueue':
         return store.enqueue(
           prepared!.issue,
@@ -112,6 +155,7 @@ export function queueCommand(args: string[]): unknown {
         return {
           task: store.get(subject!),
           attempts: store.attempts(subject!),
+          environment: store.environment(subject!),
         };
       case 'events':
         return store.events(subject!);
