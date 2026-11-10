@@ -1,0 +1,29 @@
+{
+  "name": "Code Foundry",
+  "build": { "dockerfile": "Dockerfile" },
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "init": true,
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
+  "containerEnv": { "OLLAMA_HOST": "http://host.docker.internal:11434" },
+  "mounts": [
+    "source=code-foundry-yarn-cache,target=/home/node/.cache/yarn,type=volume",
+    "source=code-foundry-node-gyp-cache,target=/home/node/.cache/node-gyp,type=volume"
+  ],
+  "postCreateCommand": "yarn install --immutable",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "vitest.explorer"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  }
+}
