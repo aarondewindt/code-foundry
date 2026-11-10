@@ -1,0 +1,10 @@
+{
+  "privileged": false,
+  "readOnlyRoot": true,
+  "network": "none",
+  "capDrop": ["ALL"],
+  "securityOptions": ["no-new-privileges=true"],
+  "apparmorProfile": "docker-default",
+  "status": "exited",
+  "exitCode": 0
+}

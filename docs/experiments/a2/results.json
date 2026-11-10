@@ -1,0 +1,266 @@
+{
+  "date": "2026-11-10",
+  "decision": "GO for feasibility of the demonstrated restricted representative worker profile. Shared development container remains NO-GO; integrated B2/B3 enforcement and Vela acceptance are separate work.",
+  "prerequisites": {
+    "issue1": "closed; representative worktree/skill trial and independent review completed; Vela integration deferred to #9",
+    "issuesReviewed": [1, 2, 4, 5]
+  },
+  "sharedContainer": {
+    "meaning": "Completed probes are evidence, not a passing security gate.",
+    "uid": 1000,
+    "process": {
+      "CapEff": "0000000000000000",
+      "CapBnd": "00000000a80425fb",
+      "NoNewPrivs": "0",
+      "Seccomp": "2"
+    },
+    "tools": {
+      "docker": false,
+      "podman": false,
+      "bwrap": false,
+      "unshare": true,
+      "psql": false,
+      "postgres": false
+    },
+    "environmentPresent": {
+      "GH_TOKEN": false,
+      "GITHUB_TOKEN": false,
+      "SSH_AUTH_SOCK": true,
+      "DOCKER_HOST": false,
+      "DATABASE_URL": false,
+      "PGPASSWORD": false,
+      "OPENAI_API_KEY": false,
+      "ANTHROPIC_API_KEY": false
+    },
+    "paths": {
+      "githubConfig": {
+        "exists": true,
+        "readable": true
+      },
+      "gitConfig": {
+        "exists": true,
+        "readable": true
+      },
+      "sshDirectory": {
+        "exists": true,
+        "readable": true
+      },
+      "codexDirectory": {
+        "exists": true,
+        "readable": true
+      },
+      "dockerSocket": {
+        "exists": false,
+        "readable": false
+      },
+      "rootlessDockerSocket": {
+        "exists": false,
+        "readable": false
+      }
+    },
+    "cgroup": {
+      "cpu.max": "max 100000",
+      "memory.max": "max",
+      "memory.swap.max": "max",
+      "pids.max": "32394"
+    },
+    "probes": {
+      "outsideTaskWrite": {
+        "exit": 0,
+        "permitted": true
+      },
+      "symlinkOutsideTaskWrite": true,
+      "mode0444WriteDenied": true,
+      "ownerCanUndoModeRestriction": true,
+      "sharedFixtureDeletionPermitted": true,
+      "emptyEnvironmentStillReadsSameUidSyntheticCredential": true,
+      "sameUidSiblingProcessSignalled": true,
+      "githubWithoutCredentials": {
+        "exit": 4,
+        "loginGuidance": true
+      },
+      "syntheticGithubStyleWrite": {
+        "status": 204,
+        "networkDenied": false,
+        "target": "loopback fixture only"
+      },
+      "childUserNetworkNamespace": {
+        "exit": 1,
+        "operationNotPermitted": true
+      },
+      "childNoNewPrivileges": {
+        "exit": 0,
+        "enabled": true
+      }
+    },
+    "sshSocketPresent": true,
+    "gpuDevicesPresent": false,
+    "mounts": [
+      {
+        "target": "/",
+        "filesystem": "overlay",
+        "readOnly": false
+      },
+      {
+        "target": "/sys/fs/cgroup",
+        "filesystem": "cgroup2",
+        "readOnly": true
+      },
+      {
+        "target": "/workspaces/code-foundry",
+        "filesystem": "ext4",
+        "readOnly": false
+      },
+      {
+        "target": "/home/node/.cache/node-gyp",
+        "filesystem": "ext4",
+        "readOnly": false
+      },
+      {
+        "target": "/home/node/.cache/yarn",
+        "filesystem": "ext4",
+        "readOnly": false
+      }
+    ]
+  },
+  "worktree": {
+    "scope": "Synthetic repository only; no Code Foundry or Vela refs/commits changed.",
+    "seedCommit": "c9e93820c8d21cd3b87f978d13ef2493579c8f82",
+    "taskBranch": "a2-synthetic-task",
+    "sourceUnchanged": true,
+    "independentCommonMetadata": true,
+    "objectsNotHardlinked": true,
+    "gitfileBeforeRelocation": "gitdir: <fixture>/task-bundle/store.git/worktrees/worktree",
+    "relocatedStatusExit": 128,
+    "repairedDiffShowsTaskChange": true,
+    "hostBackedLocation": "node_modules/.cache on the workspace bind mount",
+    "ubuntuAndVscodeOpeningTested": false,
+    "cleanup": "Only this temporary synthetic repository is removed on exit."
+  },
+  "database": {
+    "scope": "New local synthetic cluster only; no Vela database connection or data.",
+    "version": "postgres (PostgreSQL) 15.19 (Debian 15.19-0+deb12u1)",
+    "transport": "Private Unix socket; TCP listen_addresses empty; SCRAM passwords generated per run.",
+    "publicConnectSurvivesRoleRevoke": true,
+    "sourceTableReadBeforeHardeningExit": 3,
+    "sourceConnectAfterPublicRevokeExit": 2,
+    "snapshotCloneRows": 2,
+    "sourceRowsAfterDeliberateSyntheticWriter": 3,
+    "clonedViewCount": 2,
+    "clonedLargeObjectHex": "66697874757265",
+    "clonedSequenceLastValue": 3,
+    "syntheticCredentialCopied": true,
+    "taskRoleFlagsSuperuserCreateDbCreateRoleReplication": "f|f|f|f",
+    "failedMigrationExit": 3,
+    "failedMigrationRolledBack": true,
+    "taskResetRowCount": 0,
+    "sourceRowsUnchangedByTaskMigrationAndReset": true,
+    "sourceSchemaUnchangedByTaskMigration": true,
+    "defaultOtherDatabaseConnectExit": 0,
+    "defaultOtherDatabaseConnectRemainsAllowed": true,
+    "archiveSha256": "55a17e6c997d8ff34d558cf573a9b2a6b9901a1de6a0da1ade10e6dcd86b949a",
+    "taskDatabaseDropped": true,
+    "limitation": "SQL-role tests only. Same Unix UID owns cluster and generated admin credentials; not an agent isolation boundary. Vela uses PostgreSQL 18/pgvector, not this PostgreSQL 15 fixture.",
+    "clusterStoppedAndTemporaryDataRemovedOnExit": true
+  },
+  "supervisorReadOnlyObservations": {
+    "ollamaVersion": "0.40.14",
+    "githubHttpsGetStatus": 200,
+    "githubRepositoryPermissions": {
+      "admin": true,
+      "maintain": true,
+      "pull": true,
+      "push": true,
+      "triage": true
+    },
+    "runtimeHostDockerInspectAvailable": false,
+    "kernel": "7.0.0-38-generic",
+    "credentialValuesInspectedOrRecorded": false
+  },
+  "notExecuted": [
+    "existing Vela cluster connections or cloning",
+    "real external-service mutations",
+    "real GitHub mutations",
+    "OpenCode unattended execution",
+    "Integrated Code Foundry unattended execution with B2/B3 production preflight"
+  ],
+  "velaDocs": {
+    "compose": "225048aae0e93936e6af12df29e4ce9b3f8a1c82",
+    "attachments": "2cef615d3652db3517b22177eb16d673cdefa471",
+    "databaseImage": "postgres:18-alpine with pgvector 0.8.7; repository configuration, not live verification"
+  },
+  "changesToProtectedResources": false,
+  "repositoryChecks": {
+    "immutableInstall": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "vitest": {
+      "files": 1,
+      "testsPassed": 3
+    },
+    "build": "passed",
+    "pythonSyntax": "passed",
+    "restrictedContainerExecution": "not available; syntax only"
+  },
+  "followups": {
+    "hostOffline": {
+      "source": "User-provided export scratch/code-foundry-a2-host.TEJj9K",
+      "pass": true,
+      "checksPassed": 23,
+      "evidence": "host-offline/{result,runtime,review}.json",
+      "apparmorProfile": "docker-default",
+      "sharedSyntheticFixturePreserved": true,
+      "limitation": "Offline probe only; no approved-service access, whole-worker termination or host/VS Code worktree test."
+    },
+    "preparedHostFollowup": {
+      "command": "python3 docs/experiments/a2/host-followup.py scratch/code-foundry-a2-host.TEJj9K",
+      "dockerExecutedHere": false,
+      "scope": "Host/container worktree paths, whole-worker termination, PostgreSQL 18/pgvector 0.8.7 disposable snapshot/migration/shadow DB tests",
+      "localChecks": "Python syntax, fixture/worktree and writer programs, PostgreSQL 15 regression passed; PostgreSQL 18-specific branch awaits host run.",
+      "status": "Completed; see hostWorktreeAndDatabase evidence."
+    },
+    "hostWorktreeAndDatabase": {
+      "source": "scratch/code-foundry-a2-followup-w0xaobpf",
+      "pass": true,
+      "evidence": "host-followup-results/{followup,database,probe-sha256,review}.json",
+      "probeHashesMatch": true,
+      "worktreeHostAndContainerPassed": true,
+      "wholeContainerTerminationPassed": true,
+      "postgresVersion": "18.6",
+      "pgvectorVersion": "0.8.7",
+      "sqlMigrationShadowResetPassed": true,
+      "sourceProtected": true,
+      "manualVscodeConfirmedByUser": true,
+      "limitation": "SQL cluster test has no worker/gateway isolation; its existing PUBLIC CONNECT observation is preserved."
+    },
+    "preparedServiceTrial": {
+      "command": "python3 docs/experiments/a2/services/host_services.py scratch/code-foundry-a2-followup-w0xaobpf",
+      "hostExecuted": true,
+      "scope": "Restricted Unix model/database gateways, service/identity bypass denials, supervised mock action and retry, real OpenCode/Ollama trial",
+      "localEvidence": "services/local-checks.json",
+      "limits": "One inference, 32 inference requests, four gateway handlers, 128 KiB request, 8 MiB response, 120-second upstream deadline; bounded SQL pool/query and 300-second worker lifetime.",
+      "status": "Completed; see hostServiceTrial evidence."
+    },
+    "hostServiceTrial": {
+      "source": "scratch/code-foundry-a2-services-858i4416",
+      "pass": true,
+      "evidence": "host-services-results/{services,worker-results,probe-sha256,review}.json",
+      "sourceHashesMatch": 6,
+      "hostChecksPassed": 8,
+      "workerChecksPassed": 45,
+      "retryChecksPassed": 2,
+      "postgresVersion": "18.6",
+      "pgbouncerVersion": "1.26.1",
+      "model": "gpt-oss:20b",
+      "modelTrialSeconds": 45.29,
+      "gatewayRequestsAccepted": 12,
+      "gatewayRequestsDenied": 15,
+      "gatewayUpstreamErrors": 0,
+      "allContainersExitedZero": true,
+      "supervisedMockProtected": true,
+      "socketExportRequired": false,
+      "knownLimitation": "OpenCode glob returned ripgrep execution failed three times; read/edit/bash recovered. Cause unknown; verify search capability before tasks rely on it."
+    }
+  }
+}

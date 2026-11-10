@@ -1,0 +1,24 @@
+{
+  "source": "User-provided Ubuntu host export scratch/code-foundry-a2-host.TEJj9K",
+  "imageId": "sha256:4441d0b58ea4e15d8a1ef65edfe37ae4c4a0c25edf783e09935a66355db9415f",
+  "containerName": "code-foundry-a2-probe-code-foundry-a2-host.TEJj9K",
+  "offlineGate": "passed",
+  "checksPassed": 23,
+  "runtimeConsistent": true,
+  "sharedFixturePreserved": true,
+  "taskOutputVerified": true,
+  "provenanceLimitation": "Reviewed exported files; this devcontainer cannot independently inspect the host engine. The export has no execution timestamp or probe-source hash.",
+  "remaining": [
+    "Whole-worker termination and host/VS Code worktree paths",
+    "Approved Ollama/database service gateways and direct bypass denials",
+    "PostgreSQL 18/pgvector snapshot, migration and shadow-database tests",
+    "Separate supervised mock side-effect path",
+    "Real OpenCode connectivity within the service-enabled restricted profile"
+  ],
+  "decision": "NO-GO for unattended execution; offline gate only is accepted.",
+  "exportSha256": {
+    "result.json": "180cdb2ac155dd90ae274dff405ceae75c2978f7137be4b78c9792dd971410bf",
+    "runtime.json": "7c13822b48e50049ceccb06525475234cd32ec708f983d952213cacd5fe47bef"
+  },
+  "retainedFiles": "result.json and runtime.json retain the parsed export data; JSON formatting may differ from the original export hashes."
+}

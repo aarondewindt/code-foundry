@@ -1,0 +1,46 @@
+{
+  "modelGateway": {
+    "tests": 6,
+    "result": "passed",
+    "scope": "Local mock upstream, Unix gateway and loopback adapter only",
+    "coverage": [
+      "Fixed route/model/upstream; no credential forwarding",
+      "Malformed/oversized/framing/output-limit rejection",
+      "Redirect rejection and request budget",
+      "One inference at a time and adapter protocol",
+      "Upstream deadline",
+      "Bounded idle connections"
+    ]
+  },
+  "databaseGateway": {
+    "pass": true,
+    "scope": "PgBouncer config regression on synthetic PostgreSQL 15 only; not host/container boundary proof",
+    "pgbouncer": "1.18.0",
+    "checks": {
+      "cf_a2_taskdbWorks": true,
+      "cf_a2_shadowdbWorks": true,
+      "cf_a2_sourceDenied": true,
+      "postgresDenied": true,
+      "template1Denied": true,
+      "pgbouncerDenied": true,
+      "other_taskDenied": true,
+      "alternateUserDenied": true
+    },
+    "peerUidAdminBypassRequiresDifferentWorkerUid": true
+  },
+  "hostServicesTrial": "Prepared, not executed in this devcontainer; requires Ubuntu Docker and existing local Ollama model.",
+  "openCodeProtocol": {
+    "pass": true,
+    "scope": "Real pinned OpenCode transport through loopback adapter/Unix gateway to a synthetic SSE upstream; no local model inference or Docker boundary proof",
+    "opencodeVersion": "1.19.5",
+    "gatewayCounters": {
+      "accepted": 2,
+      "denied": 0,
+      "upstreamErrors": 0
+    },
+    "upstreamRequestKeys": [
+      ["max_tokens", "messages", "model", "stream", "stream_options"],
+      ["max_tokens", "messages", "model", "stream", "stream_options"]
+    ]
+  }
+}

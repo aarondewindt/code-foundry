@@ -1,0 +1,25 @@
+{
+  "scope": "Read-only GitHub intake of user-approved Code Foundry issue #3; no Vela access and no agent launched",
+  "database": "/tmp/code-foundry-b1-demo-1o9dag4p/state.sqlite",
+  "taskId": "95afba36-765e-4ba1-a2f7-56b7c12e9c84",
+  "initialAdmission": "blocked on issue #1",
+  "idempotentEnqueue": true,
+  "claimWithOpenBlocker": "blocked",
+  "profileRuntimeSeconds": 180,
+  "nativeDependenciesVerified": true,
+  "eventsBeforeUnblock": 2,
+  "claimAfterIssue1Closed": "running; one immutable attempt snapshot",
+  "restart": "active ownership and attempt persisted across CLI processes",
+  "duplicateClaim": "refused",
+  "manualReconciliation": "blocked with ownership token; no agent process existed",
+  "finalEventCount": 4,
+  "realAgentExecution": false,
+  "checks": {
+    "immutableInstall": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "tests": 19,
+    "build": "passed"
+  }
+}

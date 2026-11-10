@@ -1,0 +1,34 @@
+{
+  "source": "scratch/code-foundry-a2-followup-w0xaobpf",
+  "result": "passed host worktree, whole-container termination and synthetic PostgreSQL 18/pgvector follow-up",
+  "probeHashesMatch": {
+    "docs/experiments/a2/host-followup.py": true,
+    "docs/experiments/a2/database-probe.py": true,
+    "docs/experiments/a2/pgvector-probe.Dockerfile": true,
+    "docs/experiments/a2/process-writers.py": true
+  },
+  "databaseVersion": "postgres (PostgreSQL) 18.6 (Debian 18.6-1.pgdg12+2)",
+  "pgvectorVersion": "0.8.7",
+  "terminationExitCode": {
+    "value": 143,
+    "meaning": "Expected SIGTERM exit from deliberately stopped writer container, not a failed probe."
+  },
+  "manualVscode": {
+    "confirmedBy": "User in chat",
+    "confirmed": true,
+    "reported": "Editing fixtures.txt in the task worktree works. VSCode shows me the diff",
+    "note": "The harness fixture is named fixture.txt; retain the reported wording without changing the original automated vscodeOpeningVerified=false."
+  },
+  "copiedGitMetadata": "The exported task retains absolute host paths. Do not repair or execute it here as if it were the original live host worktree.",
+  "exportSha256": {
+    "followup.json": "93bdea98756aeb7c7ff1d4f73b3b88620d92cffd75faaca9ccec3b0a5d1ed119",
+    "database.json": "58fe37141675ebf3296775fbcaf17b89b4ab2c3392de3e2c8ded2ec08d1a7ec6",
+    "probe-sha256.json": "1f265ae71bf989ebaf371072fe908551134426b366ee0eb4ad637019ef64b867"
+  },
+  "remaining": [
+    "Restricted model and database gateways with alternate-route/identity denials",
+    "OpenCode connectivity in the service-enabled restricted worker",
+    "Separate supervised mock-service path"
+  ],
+  "decision": "NO-GO for unattended execution until the service-enabled profile is verified."
+}

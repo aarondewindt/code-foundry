@@ -1,0 +1,104 @@
+{
+  "scope": "Synthetic worktree/process/database follow-up only; no Vela access or agent execution",
+  "imageId": "sha256:4441d0b58ea4e15d8a1ef65edfe37ae4c4a0c25edf783e09935a66355db9415f",
+  "complete": true,
+  "containers": [
+    "cf-a2-path-code-foundry-a2-followup-w0xaobpf",
+    "cf-a2-process-code-foundry-a2-followup-w0xaobpf",
+    "cf-a2-pg18-code-foundry-a2-followup-w0xaobpf"
+  ],
+  "notVerified": [
+    "Service-enabled worker gateways and direct-bypass denial",
+    "OpenCode in the service-enabled restricted profile",
+    "Real client migration tooling",
+    "Manual VS Code editing",
+    "Separate supervised side-effect path"
+  ],
+  "worktree": {
+    "commonMetadataInsideTask": true,
+    "baseVerified": true,
+    "taskEditVisible": true,
+    "hostSeesTaskDiff": true,
+    "sourceUnchanged": true,
+    "base": "82eae97ee019edf6413d7847dad2dcffc0330d60",
+    "worktree": "/tmp/code-foundry-a2-followup-w0xaobpf/task/worktree",
+    "vscodeOpeningVerified": false,
+    "runtime": {
+      "id": "bbf36f71f5da18206013e7ab5ab2a8c33d436de4c7ac39e37b6e81e20c9c12f4",
+      "running": false,
+      "status": "exited",
+      "exitCode": 0,
+      "pidMode": "",
+      "ipcMode": "private",
+      "apparmorProfile": "docker-default",
+      "network": "none",
+      "privileged": false,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Name": null,
+          "Source": "/tmp/code-foundry-a2-followup-w0xaobpf/task",
+          "Destination": "/tmp/code-foundry-a2-followup-w0xaobpf/task",
+          "RW": true
+        }
+      ]
+    }
+  },
+  "termination": {
+    "bothWritersActiveBeforeStop": true,
+    "containerExited": true,
+    "bothWritersStopped": true,
+    "runtime": {
+      "id": "8da33db0d84c41df65568fc3537a3cf566a4985db7f27ecd05cb7e567f343e26",
+      "running": false,
+      "status": "exited",
+      "exitCode": 143,
+      "pidMode": "",
+      "ipcMode": "private",
+      "apparmorProfile": "docker-default",
+      "network": "none",
+      "privileged": false,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Name": null,
+          "Source": "/home/aaron/repos/code-foundry/docs/experiments/a2/process-writers.py",
+          "Destination": "/writers.py",
+          "RW": false
+        },
+        {
+          "Type": "bind",
+          "Name": null,
+          "Source": "/tmp/code-foundry-a2-followup-w0xaobpf/task",
+          "Destination": "/tmp/code-foundry-a2-followup-w0xaobpf/task",
+          "RW": true
+        }
+      ]
+    }
+  },
+  "database": {
+    "pass": true,
+    "version": "postgres (PostgreSQL) 18.6 (Debian 18.6-1.pgdg12+2)",
+    "imageId": "sha256:4987f75efa3829d598bc8d54390fbbf5630b020ba28382f847d90e614e2a183a",
+    "runtime": {
+      "id": "195a1548389f5644b53f80fd5563c88e9efa8259d8fe46d5fbe493f6dd146cd8",
+      "running": false,
+      "status": "exited",
+      "exitCode": 0,
+      "pidMode": "",
+      "ipcMode": "private",
+      "apparmorProfile": "docker-default",
+      "network": "none",
+      "privileged": false,
+      "mounts": [
+        {
+          "Type": "bind",
+          "Name": null,
+          "Source": "/home/aaron/repos/code-foundry/docs/experiments/a2/database-probe.py",
+          "Destination": "/probe.py",
+          "RW": false
+        }
+      ]
+    }
+  }
+}

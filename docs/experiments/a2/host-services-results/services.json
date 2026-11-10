@@ -1,0 +1,165 @@
+{
+  "complete": true,
+  "scope": "A2 synthetic service-enabled trial; no Vela or existing DB access",
+  "containers": [
+    "2af0f98ae0a4b925bf9fec9912176afaa213f31aa4cf67979abb7676a20604ae",
+    "1a18b4d96c946249b0c6d53662469f0754a64ef78e7ed373bd4c25cdd8440923",
+    "b9c09fc7e502f3da54f3e5f3defbe9f769734e2d5716f5e510a9e25f32a108b1"
+  ],
+  "model": "gpt-oss:20b",
+  "checks": {
+    "differentWorkerAndDatabaseServiceUid": true,
+    "separateSupervisedMockActionSucceeded": true,
+    "workerServiceAndModelTrialPassed": true,
+    "mockExternalStateUnchangedDuringWorkerAndRetry": true,
+    "sharedAttachmentUnchanged": true,
+    "sourceUnchangedThroughGateway": true,
+    "databaseServiceStopped": true,
+    "modelTrafficReachedFixedUpstream": true
+  },
+  "baseImageAliases": {
+    "worker": "code-foundry-a2-worker-base:code-foundry-a2-services-858i4416",
+    "database": "code-foundry-a2-database-base:code-foundry-a2-services-858i4416"
+  },
+  "images": {
+    "worker": "sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b",
+    "database": "sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db"
+  },
+  "databaseService": {
+    "ready": true,
+    "serviceUid": 999,
+    "sourceConnectViaPublicWouldBeAllowed": true,
+    "version": "postgres (PostgreSQL) 18.6 (Debian 18.6-1.pgdg12+2)",
+    "pgbouncerVersion": "PgBouncer 1.26.1\nlibevent 2.1.12-stable\nadns: c-ares 1.18.1\ntls: OpenSSL 3.0.22 25 Aug 2026\nsystemd: yes"
+  },
+  "workerRuntime": {
+    "id": "1a18b4d96c946249b0c6d53662469f0754a64ef78e7ed373bd4c25cdd8440923",
+    "running": false,
+    "status": "exited",
+    "exitCode": 0,
+    "pidMode": "",
+    "ipcMode": "private",
+    "apparmorProfile": "docker-default",
+    "network": "none",
+    "privileged": false,
+    "mounts": [
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/home/aaron/repos/code-foundry/docs/experiments/a2/services",
+        "Destination": "/probes",
+        "RW": false
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/shared",
+        "Destination": "/shared",
+        "RW": false
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/task",
+        "Destination": "/task",
+        "RW": true
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/db-gateway",
+        "Destination": "/gateways/db",
+        "RW": false
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/model-gateway",
+        "Destination": "/gateways/model",
+        "RW": false
+      }
+    ]
+  },
+  "retry": {
+    "supervisedRouteDeniedOnRetry": true,
+    "noInheritedCapability": true
+  },
+  "retryRuntime": {
+    "id": "b9c09fc7e502f3da54f3e5f3defbe9f769734e2d5716f5e510a9e25f32a108b1",
+    "running": false,
+    "status": "exited",
+    "exitCode": 0,
+    "pidMode": "",
+    "ipcMode": "private",
+    "apparmorProfile": "docker-default",
+    "network": "none",
+    "privileged": false,
+    "mounts": [
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/home/aaron/repos/code-foundry/docs/experiments/a2/services",
+        "Destination": "/probes",
+        "RW": false
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/retry",
+        "Destination": "/task",
+        "RW": true
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/model-gateway",
+        "Destination": "/gateways/model",
+        "RW": false
+      }
+    ]
+  },
+  "databaseFinal": {
+    "sourceRowsUnchanged": true,
+    "sourceSchemaUnchanged": true
+  },
+  "databaseRuntime": {
+    "id": "2af0f98ae0a4b925bf9fec9912176afaa213f31aa4cf67979abb7676a20604ae",
+    "running": false,
+    "status": "exited",
+    "exitCode": 0,
+    "pidMode": "",
+    "ipcMode": "private",
+    "apparmorProfile": "docker-default",
+    "network": "none",
+    "privileged": false,
+    "mounts": [
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/control",
+        "Destination": "/control",
+        "RW": true
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/tmp/code-foundry-a2-services-858i4416/db-gateway",
+        "Destination": "/frontend",
+        "RW": true
+      },
+      {
+        "Type": "bind",
+        "Name": null,
+        "Source": "/home/aaron/repos/code-foundry/docs/experiments/a2/services",
+        "Destination": "/probes",
+        "RW": false
+      }
+    ]
+  },
+  "modelGatewayCounters": {
+    "accepted": 12,
+    "denied": 15,
+    "upstreamErrors": 0
+  },
+  "cleanupErrors": []
+}

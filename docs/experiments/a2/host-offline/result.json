@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "nonRoot": true,
+    "noEffectiveCapabilities": true,
+    "noBoundingCapabilities": true,
+    "noNewPrivileges": true,
+    "seccompFilterPresent": true,
+    "rootMountReadOnly": true,
+    "onlyLoopbackNetwork": true,
+    "noDockerSocket": true,
+    "noDeveloperCredentialMounts": true,
+    "noInheritedCredentialEnvironment": true,
+    "limit:memory.max": true,
+    "limit:pids.max": true,
+    "limit:cpu.max": true,
+    "limit:memory.swap.max": true,
+    "taskWriteAllowed": true,
+    "sharedReadAllowed": true,
+    "rootWriteDenied": true,
+    "sharedWriteDenied": true,
+    "sharedChmodDenied": true,
+    "sharedDeleteDenied": true,
+    "symlinkWriteDenied": true,
+    "networkDenied:AF_INET": true,
+    "networkDenied:AF_INET6": true
+  },
+  "pass": true,
+  "scope": "Filesystem/process/resource/offline gate only; no Ollama or database gateway tested."
+}

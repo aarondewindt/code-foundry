@@ -1,7 +1,8 @@
 # Code Foundry
 
 Local-first AI development automation using OpenCode and local Ollama models.
-This repository currently contains development tooling and a minimal CLI only.
+This repository contains development tooling and a persistent approved-ticket CLI.
+No background worker or integrated agent execution is enabled.
 
 ## Development container
 
@@ -41,11 +42,13 @@ repository and image. Authenticate again after recreating the container. VS Code
 may also forward a host credential helper or SSH agent according to your own
 Dev Containers settings; this project adds no credential mounts.
 
-### Host Ollama (optional, later)
+### OpenCode and host Ollama
 
 The container maps `host.docker.internal` to Docker's host gateway and sets
-`OLLAMA_HOST=http://host.docker.internal:11434`. No Ollama server, model or
-OpenCode installation is started by this bootstrap.
+`OLLAMA_HOST=http://host.docker.internal:11434`. The image installs OpenCode
+1.19.5; it starts no OpenCode service, Ollama server or model download.
+See the [supervised OpenCode/Ollama operating guide](docs/opencode-ollama.md)
+for configuration, reproducible scratch experiments and observed limitations.
 
 An Ollama server bound only to host loopback will not be reachable through the
 Docker bridge. When integration work begins, configure its listen address and
@@ -145,20 +148,33 @@ tools, skills, model selection, agent sessions and context management. GitHub is
 authoritative for specifications, milestones and dependencies. Initial reviews
 are independent manual reviews using ChatGPT/Codex or Claude.
 
-SQLite is the intended local execution-state store. No database driver or schema
-is chosen yet; add them with persistence work. Native compilation prerequisites
-are already available. There is no queue, worker or agent execution in this setup.
+The [approved-ticket CLI guide](docs/queue.md) covers project/profile configuration,
+explicit approval, GitHub issue intake, SQLite state, inspection and manual claims.
+State uses Node 26's built-in SQLite driver. Claims persist across restart; the CLI
+does not launch an agent or implement unattended recovery.
 
-The existing [issues #1–#8](https://github.com/aarondewindt/code-foundry/issues)
-remain the detailed roadmap. This bootstrap addresses the project-foundation
-portion of [#1: OpenCode + Ollama proof of concept](https://github.com/aarondewindt/code-foundry/issues/1).
-Continue that issue with a separately approved, supervised integration trial.
-[#2](https://github.com/aarondewindt/code-foundry/issues/2) establishes the
-unattended-execution safety boundary; queue work in #3 follows #1, environment
-preparation in #4 requires #2 and #3, and execution in #5 follows #4. Recovery
-(#6) and independent review handoffs (#7) precede end-to-end acceptance (#8).
+[GitHub issues](https://github.com/aarondewindt/code-foundry/issues) are the detailed
+roadmap. [A1](docs/opencode-ollama.md) records supervised representative OpenCode
+worktree, skill, coding and continuation evidence with independent review.
+[A2](docs/execution-isolation.md) verified a restricted representative worker
+profile: filesystem/credential/network restrictions, service gateways, host
+worktrees, whole-container termination, PostgreSQL 18/pgvector and a real local
+OpenCode trial passed. The shared development container remains **NO-GO** for
+unattended agents. B2/B3 must implement the demonstrated controls and fail-closed
+readiness before execution is enabled. See the
+[A2 host procedure](docs/experiments/a2/host-procedure.md) for evidence and limits;
+no repeat host check is currently needed for this exact profile. Imported host
+exports belong under ignored `scratch/`; lint/format checks exclude them and
+Vitest discovers only repository tests under `test/`.
 
-This development container is **not a security sandbox for unattended agents**.
-It has access to the checkout and developer-authorized tooling. Enforceable
-execution isolation is separate work under #2. No Vela mounts, task runner,
-GitHub mutations, automatic pushes, merges or deployments are included.
+Queue work in #3 is independent of A2. Environment preparation #4 requires #2/#3;
+execution #5 follows #4. Recovery #6 and review handoffs #7 feed representative
+end-to-end acceptance/cleanup #10. Vela integration #9 follows milestone B and can
+run alongside C1; final Vela unattended acceptance remains #8.
+
+Code Foundry development stays separate from Vela. A future pinned build can run
+as a trusted supervisor inside Vela's devcontainer with restricted task workers;
+Vela deployment-specific permissions and safety checks belong to #9. This shared
+development container is **not a security sandbox for unattended agents**. No Vela
+mounts, background worker, GitHub mutations, automatic pushes, merges or deployments
+are included.

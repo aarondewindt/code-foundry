@@ -1,0 +1,20 @@
+diff --git a/clamp.mjs b/clamp.mjs
+index 3462bdf..5edd489 100644
+--- a/clamp.mjs
++++ b/clamp.mjs
+@@ -1 +1,14 @@
+-export function clamp(value, min, max) { return value; }
++// Clamp a numeric value to the inclusive range [min, max].
++// If min > max, throw RangeError.
++// The function does not mutate its arguments.
++export function clamp(value, min, max) {
++  // Ensure numeric comparison works; if any argument is not a number,
++  // let JavaScript handle the coercion – tests only use numbers.
++  if (min > max) {
++    throw new RangeError('min must be less than or equal to max');
++  }
++  if (value < min) return min;
++  if (value > max) return max;
++  return value;
++}
++

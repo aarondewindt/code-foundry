@@ -1,0 +1,6 @@
+{
+  "docs/experiments/a2/host-followup.py": "904f10af2f889833bedaa45ef233bbb7c2a038fb69d4131e3a322cea15422bd8",
+  "docs/experiments/a2/database-probe.py": "4deb45f0b8e3841591f3758528c5711b5cdfc81e50bcef60a81b549924a1f1c7",
+  "docs/experiments/a2/pgvector-probe.Dockerfile": "a2ed2c9f1790765c32d0fe0f4545a8dc0ef33d01af0801fb399fd860b0f20ca6",
+  "docs/experiments/a2/process-writers.py": "945f15173cafdd751499a72e395e5a7d24c32bcb60be9c1b4d2e4d7c3a8636ac"
+}

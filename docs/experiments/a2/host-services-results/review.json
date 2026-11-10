@@ -1,0 +1,126 @@
+{
+  "source": "scratch/code-foundry-a2-services-858i4416",
+  "result": "GO for feasibility of the exact demonstrated restricted representative profile; shared development container remains NO-GO and Vela acceptance remains #9.",
+  "probeHashesMatch": {
+    "docs/experiments/a2/services/database_service.py": true,
+    "docs/experiments/a2/services/model_gateway.py": true,
+    "docs/experiments/a2/services/test_model_gateway.py": true,
+    "docs/experiments/a2/services/host_services.py": true,
+    "docs/experiments/a2/services/worker_probe.py": true,
+    "docs/experiments/a2/services/services.Dockerfile": true
+  },
+  "hostChecksPassed": 8,
+  "workerChecksPassed": 45,
+  "retryChecksPassed": 2,
+  "runtimeMountAllowlistVerified": true,
+  "allContainersExitedWithZero": true,
+  "model": "gpt-oss:20b",
+  "modelSeconds": 45.29,
+  "modelGatewayCounters": {
+    "accepted": 12,
+    "denied": 15,
+    "upstreamErrors": 0
+  },
+  "sessionIDs": ["ses_e38920e2affe3vTYbaeNR5Qw4D"],
+  "tools": [
+    {
+      "tool": "glob",
+      "status": "error",
+      "file": ""
+    },
+    {
+      "tool": "glob",
+      "status": "error",
+      "file": "./"
+    },
+    {
+      "tool": "glob",
+      "status": "error",
+      "file": "/task/project"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "file": "/task/project"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "file": "/task/project/AGENTS.md"
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "file": "/task/project/REQUIREMENTS.md"
+    },
+    {
+      "tool": "bash",
+      "status": "completed",
+      "file": null
+    },
+    {
+      "tool": "read",
+      "status": "completed",
+      "file": "/task/project/clamp.mjs"
+    },
+    {
+      "tool": "edit",
+      "status": "completed",
+      "file": "/task/project/clamp.mjs"
+    },
+    {
+      "tool": "bash",
+      "status": "completed",
+      "file": null
+    }
+  ],
+  "testRuns": [
+    {
+      "command": "node --test clamp.test.mjs",
+      "exit": 1
+    },
+    {
+      "command": "node --test clamp.test.mjs",
+      "exit": 0
+    }
+  ],
+  "independentReview": {
+    "reviewer": "Codex, separate from implementing OpenCode session",
+    "accepted": true,
+    "tests": "Copied fixture tests: 2 passed. Additional 7161 valid numeric ranges and 11 invalid ranges passed after inspecting the source.",
+    "implementation": "Pure named ESM clamp; validates bounds before comparisons; no imports, external calls or mutable state."
+  },
+  "knownLimitations": [
+    {
+      "tool": "glob",
+      "error": "ripgrep execution failed"
+    },
+    {
+      "tool": "glob",
+      "error": "ripgrep execution failed"
+    },
+    {
+      "tool": "glob",
+      "error": "ripgrep execution failed"
+    },
+    {
+      "scope": "export",
+      "detail": "ollama.sock was skipped during copying. It is an ephemeral IPC endpoint; JSON/log evidence is sufficient and no socket recreation or rerun is required."
+    },
+    {
+      "scope": "tools",
+      "detail": "Three glob attempts returned ripgrep execution failed; read/edit/bash succeeded. Cause was not established. Resolve/verify search-tool capability in an approved pinned image before relying on it; never relax isolation as a workaround."
+    },
+    {
+      "scope": "deployment",
+      "detail": "Operator-provided exports reviewed, not live host attestation. Production B2/B3 must implement/pin/verify the demonstrated controls; this does not enable unattended execution here."
+    }
+  ],
+  "exportSha256": {
+    "services.json": "ea4b0043466a986a71777a0a365a75f1588924d8b40e9bc4508aae35fee8d83d",
+    "task/worker-results.json": "4231088de455eb4446b36ea7c4ce9ebbc4ebee00107216bb446064451c133305",
+    "probe-sha256.json": "03f5ad5cc915da3e91605e35811974695fd26416813c3fe578b6fda772b73471",
+    "task/validation.txt": "372d3e718999474968c3dca6deab9fb34e07fcdd4730ca40163719b933e1fb36"
+  },
+  "credentialsCopiedIntoTrackedEvidence": false
+}
