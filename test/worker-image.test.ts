@@ -16,8 +16,8 @@ afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true });
 });
-it.each(['success', 'search-failure', 'identity-mismatch'])(
-  'builds and checks a candidate without selecting it (%s)',
+it.each(['success', 'search-failure', 'identity-mismatch', 'check-missing'])(
+  'checks search capabilities without selecting a candidate (%s)',
   (scenario) => {
     const failed = scenario !== 'success';
     const root = mkdtempSync(join(tmpdir(), 'cf-image-helper-test-'));
@@ -63,7 +63,12 @@ else process.exit(3);
     const pins = readFileSync('src/environment/runtime.ts', 'utf8');
     const result = spawnSync(
       process.execPath,
-      ['--import', 'tsx', 'test/worker-image-host.ts', '--build-candidate'],
+      [
+        '--import',
+        'tsx',
+        'test/worker-image-host.ts',
+        scenario === 'check-missing' ? '--check' : '--build-candidate',
+      ],
       {
         encoding: 'utf8',
         timeout: 15_000,
@@ -95,6 +100,18 @@ else process.exit(3);
     };
     expect(report.complete).toBe(!failed);
     expect(report.pinsChanged).toBe(false);
+    if (scenario === 'check-missing') {
+      const commands = readFileSync(calls, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line) as string[]);
+      expect(
+        commands.some((args) => args[0] === 'build' || args[1] === 'tag'),
+      ).toBe(false);
+      expect(report.error).toContain('check mode never builds');
+      expect(readFileSync('src/environment/runtime.ts', 'utf8')).toBe(pins);
+      return;
+    }
     expect(report.candidateImage).toBe('sha256:' + 'c'.repeat(64));
     expect(readFileSync('src/environment/runtime.ts', 'utf8')).toBe(pins);
     expect(report.candidateImageId).toBe('sha256:' + 'd'.repeat(64));

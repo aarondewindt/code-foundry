@@ -19,6 +19,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration:smoke": "python3 tools/integration/vm.py --smoke",
+    "test:integration": "python3 tools/integration/vm.py",
+    "check:integration": "yarn check && yarn test:integration",
     "check": "yarn typecheck && yarn lint && yarn format:check && yarn test && yarn build"
   },
   "devDependencies": {

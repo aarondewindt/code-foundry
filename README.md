@@ -26,6 +26,12 @@ host credential directories or other repositories are configured as mounts.
 VS Code supplies ESLint, Prettier and Vitest extensions. Press F5 to debug the
 TypeScript CLI; edit the launch configuration's arguments as needed.
 
+For Docker integration, use the [disposable development VM](docs/development-integration.md).
+`yarn test:integration:smoke` verifies guest Docker/security compatibility;
+`yarn test:integration` runs the real environment manager with an explicitly
+supplied reviewed-image archive. QEMU runs without host Docker access or extra
+container privileges. `yarn check` remains VM-independent.
+
 ### Git identity and GitHub authentication
 
 Dev Containers copies your local Git configuration into the container. Set your

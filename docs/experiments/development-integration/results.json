@@ -1,0 +1,61 @@
+{
+  "complete": true,
+  "startedAt": "2026-11-11T18:30:36.032427+00:00",
+  "scope": "Disposable guest evidence, not Ubuntu host or Vela acceptance",
+  "elapsedSeconds": 1027.64,
+  "ubuntuSha256": "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94",
+  "qemuVersion": "QEMU emulator version 7.2.22 (Debian 1:7.2+dfsg-7+deb12u18+b3)",
+  "imagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+  "sourceSha256": "6c0c34591569ddebf9722f943511df5db0f1eff6bed143dd053907e0cc25e242",
+  "smoke": {
+    "complete": true,
+    "checks": {
+      "apparmor": true,
+      "seccomp": true,
+      "noNewPrivileges": true,
+      "capabilities": true,
+      "cpuLimit": true,
+      "memoryLimit": true,
+      "pidLimit": true,
+      "readonlyRoot": true,
+      "readonlyAttachment": true,
+      "isolatedNetwork": true,
+      "bindMount": true,
+      "wholeWorkerTermination": true
+    },
+    "scope": "Guest runtime compatibility only",
+    "stage": "complete",
+    "dockerVersion": "29.1.3",
+    "kernelVersion": "6.8.0-147-generic",
+    "busyboxSha256": "dbac288c29ba568459550a2da9e7ae0ded6b1fc728ee9fad3044c44e62d6ac14",
+    "imageId": "sha256:995beab2ee846bf9f665838d014380d86fbb049a64bf6ccdd7583ea5a31a474c"
+  },
+  "vmStopped": true,
+  "diskRemoved": true,
+  "diskRemovedAfterReview": true,
+  "vmProfile": {
+    "vcpus": 2,
+    "memoryMiB": 3072,
+    "translationCacheMiB": 64,
+    "cpu": "max,la57=off",
+    "translationThreads": "single"
+  },
+  "environment": {
+    "complete": true,
+    "readyEnvironments": 2,
+    "postgresVersion": "180006",
+    "pgvectorVersion": "0.8.7",
+    "failureChecks": [
+      "gateway-substitution-denied:1",
+      "gateway-substitution-denied:2"
+    ],
+    "syntheticModelUpstream": true,
+    "forbiddenUpstreamRequests": 0
+  },
+  "rawReport": "scratch/integration-tz_6id_p/report.json",
+  "limitations": [
+    "Guest evidence only; actual Ubuntu/VS Code and Vela acceptance remain separate.",
+    "Earlier two-vCPU max CPU trial panicked; this pass does not prove the cause or long-term emulator stability.",
+    "The original VS Code crash was not confirmed as an OOM kill."
+  ]
+}

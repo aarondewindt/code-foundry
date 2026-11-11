@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os';
 import { reviewedImages } from '../src/environment/runtime.js';
 
 const build = process.argv.slice(2);
-if (build.length !== 1 || build[0] !== '--build-candidate')
+if (build.length !== 1 || !['--build-candidate', '--check'].includes(build[0]!))
   throw new Error(
-    'Usage: node --import tsx test/worker-image-host.ts --build-candidate (disposable synthetic Docker diagnostics; retained candidate build only if rg is missing)',
+    'Usage: node --import tsx test/worker-image-host.ts --check|--build-candidate (check never builds or changes image pins)',
   );
 const invoke = (args: string[], timeout = 30_000) =>
   spawnSync('docker', args, {
@@ -170,10 +170,16 @@ try {
   const original = checkImage(reviewedImages.worker, 'original');
   report.original = original;
   if (original.path !== null) {
+    if (!original.available)
+      throw new Error('Reviewed image search capability failed');
     report.complete = original.available;
     report.nextAction =
       'Standalone rg is present. Review search exit codes and the original worktree failure before changing the image.';
   } else {
+    if (build[0] === '--check')
+      throw new Error(
+        'Reviewed image has no standalone rg; check mode never builds a replacement',
+      );
     const alias = `code-foundry-b2-worker-base:${basename(root)}`;
     if (invoke(['image', 'inspect', alias]).status === 0)
       throw new Error('Refusing to replace an existing image alias');

@@ -4,8 +4,8 @@
 The implementation adds synchronous environment preparation to the B1 CLI. It
 starts a synthetic database service and bounded readiness probes; it never starts
 OpenCode or executes project hooks. **Automated two-environment host integration
-has passed. Manual Ubuntu VS Code and inspection-devcontainer acceptance remains
-pending before #4 is complete or #5 begins.** The reviewed B2 evidence is retained
+and user-confirmed Ubuntu VS Code/inspection-devcontainer acceptance have passed.
+Local acceptance for #4 is complete; #5 can proceed.** The reviewed B2 evidence is retained
 in [the host review](experiments/b2-host-results/review.json); A2's earlier exports
 remain separate feasibility evidence.
 
@@ -259,6 +259,12 @@ implementation does not perform automatic takeover or grant cleanup authority.
 
 ## Verification and handoff
 
+For routine development, use the [disposable VM integration commands](development-integration.md).
+They run the shared synthetic fixture with the supervisor and Docker in one guest,
+using a powerless model upstream and automatic outer-VM cleanup. Worker restrictions,
+reviewed image IDs and the manager's retention semantics are unchanged. Guest evidence
+does not replace the remaining actual Ubuntu/VS Code host acceptance below.
+
 Local automated tests use real temporary Git repositories, dirty source files,
 two independent stores, metadata-tampering attempts, SQLite restart/failure tests,
 adversarial runtime-inspection fixtures and real Unix model-gateway connections to
@@ -301,9 +307,11 @@ to local protected-mock gateway tests and earlier A2 service-state evidence; it
 does not contain a new separate host mock-state counter. No OpenCode/Vela acceptance
 is implied.
 
-The remaining manual check is opening the prepared worktrees in Ubuntu VS Code
-and an inspection development container using identical absolute paths, then
-verifying task-only editing/diff visibility. Record that result separately; no
+The user confirmed task-only editing/diff visibility in host VS Code and the
+inspection development container on 2026-11-12: changing the file in one worktree
+does not appear in the other's Git diff. The inspection configuration mounts each
+worktree and its independent Git store at their original absolute host paths.
+This completes the remaining manual acceptance for #4; no
 additional automated run is required for this reviewed profile. #5 still needs
 bounded OpenCode launch/session handling and validation; #9 needs real project
 migrations, existing-cluster safeguards and separately approved private-data

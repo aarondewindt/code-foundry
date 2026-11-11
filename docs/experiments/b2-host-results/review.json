@@ -1,7 +1,7 @@
 {
   "export": "scratch/cf-b2-host-HO7o9y",
   "complete": true,
-  "scope": "Successful operator-run two-environment B2 integration; manual UI acceptance pending",
+  "scope": "Successful operator-run two-environment B2 integration; manual host and inspection-devcontainer UI acceptance confirmed by user",
   "profileHash": "dc24573245acad39686205756aba4900d3ed5dc9a25638eb341ceb4fbfcf6250",
   "profileMatchesCurrentSource": true,
   "workerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
@@ -81,15 +81,22 @@
     }
   ],
   "notVerified": [
-    "Opening/editing/diff display in Ubuntu VS Code and the inspection development container",
     "Database service or Docker daemon restart recovery; the successful script restarts probes and reopens SQLite",
     "New B2 host mock-service state counter: this script verifies gateway route denial; protected mock HTTP writes are additionally covered by local gateway tests and historical A2 evidence",
     "OpenCode execution, real private data, Vela and real side effects (outside B2)"
   ],
   "evidenceLimits": "Reviewed operator-provided export, not live Docker attestation from this container. Matching runtime profile hashes cover runtime.ts and database/worker/model gateway scripts; the host harness itself has no exported source hash or raw Docker/probe stdout in this run.",
-  "manualAcceptancePending": true,
-  "readyForIssue5": false,
+  "manualAcceptancePending": false,
+  "readyForIssue5": true,
   "exportedReportSha256": "9ae2c8b9d4f16d71216b185d7eb703661b3f124503ffac33d032d70366e17f27",
   "retainedReportSha256": "d4589a2034f5e8c1ff65d7c1aae851ed551e3ceb87a621a869f4a3bbfcd5db07",
-  "reportCopy": "Retained JSON formatting is normalized; parsed contents equal the original scratch export, whose bytes are unchanged"
+  "reportCopy": "Retained JSON formatting is normalized; parsed contents equal the original scratch export, whose bytes are unchanged",
+  "manualAcceptance": {
+    "taskEditIndependenceInVsCode": true,
+    "source": "User reported: changing the file in one does not show up in the other's git diff.",
+    "reportedOn": "2026-11-12",
+    "inspectionDevcontainerSameAbsolutePaths": true,
+    "taskEditIndependenceInInspectionDevcontainer": true,
+    "devcontainerSource": "User reported: git diff only sees the changes in its worktree, also in the devcontainer, after receiving the same-path inspection configuration."
+  }
 }

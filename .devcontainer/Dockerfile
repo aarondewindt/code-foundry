@@ -4,9 +4,11 @@ ENV COREPACK_HOME=/opt/corepack
 ARG OPENCODE_VERSION=1.19.5
 
 # Native addons (including SQLite bindings) need Python, make and C++.
+# QEMU software emulation runs disposable Docker tests without host Docker access.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential ca-certificates curl gh git python3 \
+        build-essential ca-certificates cloud-image-utils curl gh git \
+        openssh-client python3 qemu-system-x86 qemu-utils ripgrep \
     && rm -rf /var/lib/apt/lists/* \
     && npm install --global corepack@0.36.0 opencode-ai@${OPENCODE_VERSION} \
     && corepack enable \
