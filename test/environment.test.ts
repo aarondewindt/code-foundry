@@ -334,6 +334,13 @@ describe('environment lifecycle and fail-closed preparation', () => {
         workerImage: 'sha256:' + '0'.repeat(64),
       }),
     ).toThrow();
+    expect(() =>
+      runtime.preflight({
+        ...f.config,
+        workerImage:
+          'sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b',
+      }),
+    ).toThrow('Unreviewed runtime image');
     expect(calls).toBe(0);
   });
   it('fails the real CLI readiness command when environment resources are absent', () => {
@@ -381,6 +388,7 @@ describe('runtime rejection of tampered inspection data', () => {
       owner: env.owner,
       user: `${process.getuid?.()}:${process.getgid?.()}`,
       apparmor: 'docker-default',
+      state: 'running',
       host: {
         Privileged: false,
         ReadonlyRootfs: true,
@@ -390,7 +398,7 @@ describe('runtime rejection of tampered inspection data', () => {
         CgroupnsMode: 'private',
         CapDrop: ['ALL'],
         CapAdd: null,
-        SecurityOpt: ['no-new-privileges=true'],
+        SecurityOpt: ['no-new-privileges=true', 'apparmor=docker-default'],
         Memory: 4294967296,
         MemorySwap: 4294967296,
         NanoCpus: 2000000000,
@@ -429,6 +437,47 @@ describe('runtime rejection of tampered inspection data', () => {
     expect(() =>
       runtime(inspect).verifyContainer(env, id, 'worker', control),
     ).not.toThrow();
+    // Docker can leave AppArmorProfile empty until startup. Only an explicitly
+    // requested profile on a still-created container may pass creation checks.
+    const created = { ...inspect, state: 'created', apparmor: '' };
+    expect(() =>
+      runtime(created).verifyContainer(env, id, 'worker', control, 'created'),
+    ).not.toThrow();
+    expect(() =>
+      runtime(created).verifyContainer(env, id, 'worker', control),
+    ).toThrow('security profile');
+    expect(() =>
+      runtime({ ...created, state: 'running' }).verifyContainer(
+        env,
+        id,
+        'worker',
+        control,
+        'created',
+      ),
+    ).toThrow('security profile');
+    expect(() =>
+      runtime({ ...created, apparmor: 'unconfined' }).verifyContainer(
+        env,
+        id,
+        'worker',
+        control,
+        'created',
+      ),
+    ).toThrow('security profile');
+    expect(() =>
+      runtime({
+        ...created,
+        host: { ...inspect.host, SecurityOpt: ['no-new-privileges=true'] },
+      }).verifyContainer(env, id, 'worker', control, 'created'),
+    ).toThrow('security profile');
+    expect(() =>
+      runtime({ ...inspect, apparmor: '' }).verifyContainer(
+        env,
+        id,
+        'worker',
+        control,
+      ),
+    ).toThrow('security profile');
     for (const host of [
       { ...inspect.host, NetworkMode: 'bridge' },
       { ...inspect.host, Privileged: true },

@@ -1,0 +1,95 @@
+{
+  "export": "scratch/cf-b2-host-HO7o9y",
+  "complete": true,
+  "scope": "Successful operator-run two-environment B2 integration; manual UI acceptance pending",
+  "profileHash": "dc24573245acad39686205756aba4900d3ed5dc9a25638eb341ceb4fbfcf6250",
+  "profileMatchesCurrentSource": true,
+  "workerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+  "databaseImage": "sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db",
+  "checks": {
+    "twoSequentialPreparedEnvironments": true,
+    "independentGitStoresAndBranches": true,
+    "sameAbsoluteHostWorkerGitPaths": true,
+    "dirtySourceBranchAndFilesPreserved": true,
+    "taskEditsIndependent": true,
+    "syntheticAttachmentUnchanged": true,
+    "fullPg18VectorSnapshotInventoriesEqual": true,
+    "taskAndShadowOwnershipVerified": true,
+    "fixtureMigrationsRolledBackSuccessfully": true,
+    "liveSourceInventoryRechecked": true,
+    "sourceDefaultOtherDatabaseAndAlternateIdentityDenied": true,
+    "privilegedSqlDenied": true,
+    "actualAppArmorSeccompPrivilegesResourceChecksPassed": true,
+    "ipv4Ipv6AndUnapprovedRoutesDenied": true,
+    "readOnlyAttachmentMutationChecksPassed": true,
+    "modelAvailabilityAndGatewayRouteChecksPassed": true,
+    "privateApplicationAndAdapterPortsAvailable": true,
+    "workersStoppedAndRecheckedAcrossRestarts": true,
+    "sqliteReopenAndOwnershipManifestEquality": true,
+    "separateVolumesBackendsAndGatewayIdentities": true,
+    "noAutomaticCleanup": true
+  },
+  "additionalLocalReview": [
+    "Compared report to both SQLite environment rows and private supervisor manifests",
+    "Checked completed preparation attempts, environment-ready outcomes and queued tasks",
+    "Inspected copied Git pointers/back-pointers/commondir, branches/base objects, no remotes, alternates, symlinks or hardlinked metadata",
+    "Compared copied source dirty status/main branch/content, separate task edits and shared attachment contents",
+    "Compared database-ready records, database ownership/inventory and model gateway manifest/code hashes"
+  ],
+  "environments": [
+    {
+      "taskId": "00c940a0-5f70-4103-a8bb-0a60fd22df79",
+      "attemptId": "ba9e8607-0aa7-4230-9112-217c50cbf752",
+      "owner": "38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "root": "/tmp/cf-b2-host-HO7o9y/tasks/38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "worktree": "/tmp/cf-b2-host-HO7o9y/tasks/38f57402-2fcd-4cf0-9398-f8a75fa337ed/worktree",
+      "branch": "cf-task-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "base": "5e5569e2d73b274b08d514c044004e478ce1aeee",
+      "resources": {
+        "databaseName": "cf-db-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "workerName": "cf-check-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "volumeName": "cf-data-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "databaseId": "c0b1e7c843d9ca7005926e81db579a38a642cd84bf92cedce3abd9f9be12c00e",
+        "workerId": "c67658b5b63f33508ef4e1ecba67bbd242eb859723623fa5f682d801dffdfd9c"
+      },
+      "gatewayIdentity": "dbc6b886526d79762cbb9c56387cac29aee2686c5a622ba2b94499cae5facdb1",
+      "volumeIdentity": "2026-11-11T01:03:56+01:00|local|/var/lib/docker/volumes/cf-data-38f57402-2fcd-4cf0-9398-f8a75fa337ed/_data",
+      "manifestSha256": "f86d80ab2edb51b2583c65a694efa18997a6ab44623f7cc155179d0b60cdaa06",
+      "postgres": "18.6",
+      "pgvector": "0.8.7"
+    },
+    {
+      "taskId": "95897e46-8da5-441e-9aef-5953badfee39",
+      "attemptId": "610bed4a-1d41-433c-8442-c0eec5788e38",
+      "owner": "36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "root": "/tmp/cf-b2-host-HO7o9y/tasks/36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "worktree": "/tmp/cf-b2-host-HO7o9y/tasks/36e049c9-ef3f-4128-a8f3-536dbbd02fe9/worktree",
+      "branch": "cf-task-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "base": "5e5569e2d73b274b08d514c044004e478ce1aeee",
+      "resources": {
+        "databaseName": "cf-db-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "workerName": "cf-check-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "volumeName": "cf-data-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "databaseId": "7e205d1364bd44f3d411add23bba04d2d6311cff77926ddc60854ac1c8d888dc",
+        "workerId": "4036686c6fefdc5a00fc3134b4fb77521f20388dbb3c8db5be3c54c21cb7be2d"
+      },
+      "gatewayIdentity": "6180f377f3e0d3601c8676efa84747360b2a399275054974db81d13a3d19a5b4",
+      "volumeIdentity": "2026-11-11T01:04:00+01:00|local|/var/lib/docker/volumes/cf-data-36e049c9-ef3f-4128-a8f3-536dbbd02fe9/_data",
+      "manifestSha256": "3d9d47a132d38d4d4c11a29509da1f241770f6d10a9cfd39257f2c82d3c5af19",
+      "postgres": "18.6",
+      "pgvector": "0.8.7"
+    }
+  ],
+  "notVerified": [
+    "Opening/editing/diff display in Ubuntu VS Code and the inspection development container",
+    "Database service or Docker daemon restart recovery; the successful script restarts probes and reopens SQLite",
+    "New B2 host mock-service state counter: this script verifies gateway route denial; protected mock HTTP writes are additionally covered by local gateway tests and historical A2 evidence",
+    "OpenCode execution, real private data, Vela and real side effects (outside B2)"
+  ],
+  "evidenceLimits": "Reviewed operator-provided export, not live Docker attestation from this container. Matching runtime profile hashes cover runtime.ts and database/worker/model gateway scripts; the host harness itself has no exported source hash or raw Docker/probe stdout in this run.",
+  "manualAcceptancePending": true,
+  "readyForIssue5": false,
+  "exportedReportSha256": "9ae2c8b9d4f16d71216b185d7eb703661b3f124503ffac33d032d70366e17f27",
+  "retainedReportSha256": "d4589a2034f5e8c1ff65d7c1aae851ed551e3ceb87a621a869f4a3bbfcd5db07",
+  "reportCopy": "Retained JSON formatting is normalized; parsed contents equal the original scratch export, whose bytes are unchanged"
+}

@@ -11,9 +11,10 @@ import { dirname, basename, join } from 'node:path';
 import type { Environment, EnvironmentConfig } from './types.js';
 import { run, type Run } from './system.js';
 
+// Worker search/image review: docs/experiments/b2-worker-image/review.json.
 export const reviewedImages = {
   worker:
-    'sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b',
+    'sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc',
   database:
     'sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db',
 };
@@ -132,6 +133,8 @@ export class DockerRuntime {
       'ALL',
       '--security-opt',
       'no-new-privileges=true',
+      '--security-opt',
+      'apparmor=docker-default',
       '--cpus',
       '2',
       '--memory',
@@ -192,8 +195,9 @@ export class DockerRuntime {
       throw new Error('Invalid database container identity');
     resources.databaseId = id;
     save(); // Persist identity before starting the service.
-    this.verifyContainer(environment, id, 'database', control);
+    this.verifyContainer(environment, id, 'database', control, 'created');
     this.execute('docker', ['start', id]);
+    this.verifyContainer(environment, id, 'database', control);
     // A bounded exec waits inside the service namespace; no host sleep or daemon.
     this.execute('docker', [
       'exec',
@@ -246,16 +250,18 @@ export class DockerRuntime {
     id: string,
     kind: 'database' | 'worker',
     control: string,
+    phase: 'created' | 'started' = 'started',
   ): void {
     // Filtered inspection excludes environment values and command lines.
     const raw = this.execute('docker', [
       'inspect',
       '--format',
-      '{"id":{{json .Id}},"image":{{json .Image}},"owner":{{json (index .Config.Labels "code-foundry.owner")}},"user":{{json .Config.User}},"host":{{json .HostConfig}},"mounts":{{json .Mounts}},"apparmor":{{json .AppArmorProfile}}}',
+      '{"id":{{json .Id}},"state":{{json .State.Status}},"image":{{json .Image}},"owner":{{json (index .Config.Labels "code-foundry.owner")}},"user":{{json .Config.User}},"host":{{json .HostConfig}},"mounts":{{json .Mounts}},"apparmor":{{json .AppArmorProfile}}}',
       id,
     ]);
     const data = JSON.parse(raw) as {
       id: string;
+      state: string;
       image: string;
       owner: string;
       user: string;
@@ -310,8 +316,13 @@ export class DockerRuntime {
       h.DeviceRequests?.length ||
       h.CapDrop?.join() !== 'ALL' ||
       h.CapAdd?.length ||
-      h.SecurityOpt?.join() !== 'no-new-privileges=true' ||
-      data.apparmor !== 'docker-default' ||
+      h.SecurityOpt?.toSorted().join() !==
+        'apparmor=docker-default,no-new-privileges=true' ||
+      (phase === 'created'
+        ? data.state !== 'created' ||
+          !['', 'docker-default'].includes(data.apparmor)
+        : !['running', 'exited'].includes(data.state) ||
+          data.apparmor !== 'docker-default') ||
       h.Memory !== 4294967296 ||
       h.MemorySwap !== h.Memory ||
       h.NanoCpus !== 2000000000 ||
@@ -401,11 +412,12 @@ export class DockerRuntime {
     if (!/^[a-f0-9]{64}$/.test(id)) throw new Error('Invalid worker identity');
     environment.resources.workerId = id;
     save();
-    this.verifyContainer(environment, id, 'worker', control);
+    this.verifyContainer(environment, id, 'worker', control, 'created');
     try {
       const result = JSON.parse(
         this.execute('docker', ['start', '--attach', id]),
       ) as { ready: boolean };
+      this.verifyContainer(environment, id, 'worker', control);
       const exit = this.execute('docker', [
         'inspect',
         '--format',
@@ -498,6 +510,12 @@ export class DockerRuntime {
           environment.resources.workerId,
         ]),
       ) as { ready: boolean };
+      this.verifyContainer(
+        environment,
+        environment.resources.workerId,
+        'worker',
+        control,
+      );
       if (
         !result.ready ||
         this.execute('docker', [

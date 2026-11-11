@@ -3,9 +3,11 @@
 [Issue #4](https://github.com/aarondewindt/code-foundry/issues/4) is authoritative.
 The implementation adds synchronous environment preparation to the B1 CLI. It
 starts a synthetic database service and bounded readiness probes; it never starts
-OpenCode or executes project hooks. **Host integration is pending. Do not treat
-this implementation as accepted for #5 until the new host verification passes.**
-A2 exports establish feasibility of earlier probes, not validation of this code.
+OpenCode or executes project hooks. **Automated two-environment host integration
+has passed. Manual Ubuntu VS Code and inspection-devcontainer acceptance remains
+pending before #4 is complete or #5 begins.** The reviewed B2 evidence is retained
+in [the host review](experiments/b2-host-results/review.json); A2's earlier exports
+remain separate feasibility evidence.
 
 ## Layout and lifecycle
 
@@ -111,11 +113,55 @@ copies or establishes Vela compatibility; those remain #9.
 
 ## Runtime preflight
 
-Only the two local immutable image IDs retained in A2's reviewed service export
-are accepted (`reviewedImages` in `src/environment/runtime.ts`). Images are never
+Only the local immutable worker/database IDs in `reviewedImages` in
+`src/environment/runtime.ts` are accepted. The database uses A2's reviewed image;
+the worker uses the reviewed B2 derivative with standalone ripgrep. Images are never
 pulled or rebuilt by preparation. If the host no longer has them, stop and arrange
 a separately reviewed image build; changing a tag or accepting an arbitrary image
 ID is not a fallback.
+
+Containers explicitly request `apparmor=docker-default`. Creation checks verify
+that request and all configured restrictions; Docker may leave the active
+`AppArmorProfile` field empty while the container is still `created`. After startup,
+inspection must report `docker-default`, and the worker verifies its own enforced
+profile through `/proc/self/attr/current`. An empty or unconfined runtime profile
+fails readiness.
+
+The second reviewed host run, `scratch/cf-b2-host-hvKz7l`, successfully provisioned
+PostgreSQL 18.6/vector 0.8.7 with matching source/clone inventories. Its worker
+passed AppArmor, privilege and cgroup checks, then failed the composite search-tool
+check. The A2 image recipes do not explicitly install standalone ripgrep. Search
+readiness now distinguishes missing executable, execution failure and worktree
+search failure; it remains mandatory.
+
+To diagnose that image and build a retained candidate only when `rg` is absent:
+
+```sh
+node --import tsx test/worker-image-host.ts --build-candidate
+```
+
+This host-only helper uses the immutable reviewed base. If a build is needed,
+`runtime/environment/worker.Dockerfile` installs ripgrep inside a derived image;
+it does not install host packages or change host security settings. Restricted
+synthetic probes test the original/candidate image, and the helper retains the
+build log, image ID, recipe/helper hashes, probe outputs and stopped containers in
+the printed `/tmp/cf-b2-worker-image-*` folder. Copy that folder to `scratch/` for
+review. It never replaces `reviewedImages.worker` or selects an unreviewed image.
+If `rg` already exists, it records its exit codes and does not build a replacement.
+Candidate search success alone is not B2 acceptance; after reviewing the new
+immutable ID, update the pin deliberately and rerun full environment verification.
+
+The reviewed [search-image export](experiments/b2-worker-image/review.json) confirms
+that the original image lacks standalone `rg` and that the derived image passes
+version, file-list and content-search checks with ripgrep 13.0.0. Both build-source
+hashes matched at review. Installing `rg` on Ubuntu does not supply it inside an
+isolated worker image. The operator confirmed the candidate container's runtime
+image ID matches the exported build reference, with exit code 0 and AppArmor
+`docker-default`. That exact image is now selected in `reviewedImages.worker`.
+The build log's separate config digest is retained as provenance, not substituted
+for the observed runtime ID. The helper now captures image/container identities
+separately. Full B2 integration remains pending; rerun the two-environment host
+script with this pin and retain all earlier failed environments.
 
 The runtime inspects actual container image/ID/ownership, user, private network,
 PID/IPC/cgroup namespaces, read-only root, capability drop, no-new-privileges,
@@ -171,7 +217,7 @@ Create `/absolute/environment-a.json`:
   "source": "/absolute/synthetic-project",
   "shared": "/absolute/synthetic-shared",
   "modelGateway": "/absolute/model-sockets/task-a",
-  "workerImage": "sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b",
+  "workerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
   "databaseImage": "sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db"
 }
 ```
@@ -239,9 +285,26 @@ private manifests and actual Docker identities; open both worktrees in Ubuntu
 VS Code and an inspection devcontainer with identical paths. Record that manual
 result separately. Cleanup remains explicitly authorized later work.
 
-The script has **not passed in this development container**: Docker is absent.
-The new persistent service, gateway identity binding, cgroup checks and recovery
-code need host verification. A2's older 45/8/2 checks are not new B2 results.
-Do not begin #5 execution until this gap is closed. #5 also needs bounded OpenCode
-launch/session handling and validation; #9 needs real project migrations,
-existing-cluster safeguards and separately approved private-data integration.
+The successful operator export `scratch/cf-b2-host-HO7o9y` prepared two environments
+using PostgreSQL 18.6/vector 0.8.7 and the updated worker image. Both completed
+readiness, rolled-back fixture migrations and repeated worker checks after SQLite
+reopen. Local review matched the runtime profile to current source, compared
+SQLite/manifests, validated copied Git pointers and independent edits, and checked
+source/clone inventories plus unchanged synthetic source/attachment bytes. See the
+[retained review](experiments/b2-host-results/review.json) for exact evidence,
+resource identities and limits. The original failed attempts remain retained.
+
+These are reviewed operator exports, not a live Docker inspection from this
+container. The current script reopens SQLite and restarts worker probes; it does
+not restart PostgreSQL or the Docker daemon. Its route-denial checks are additional
+to local protected-mock gateway tests and earlier A2 service-state evidence; it
+does not contain a new separate host mock-state counter. No OpenCode/Vela acceptance
+is implied.
+
+The remaining manual check is opening the prepared worktrees in Ubuntu VS Code
+and an inspection development container using identical absolute paths, then
+verifying task-only editing/diff visibility. Record that result separately; no
+additional automated run is required for this reviewed profile. #5 still needs
+bounded OpenCode launch/session handling and validation; #9 needs real project
+migrations, existing-cluster safeguards and separately approved private-data
+integration.

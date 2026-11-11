@@ -1,40 +1,43 @@
 {
-  "scope": "Issue #4 local implementation; host acceptance incomplete",
+  "scope": "Issue #4 implementation and automated host integration passed; manual VS Code/inspection-container acceptance pending",
   "issue": "https://github.com/aarondewindt/code-foundry/issues/4",
   "node": "26.13.0",
   "yarn": "4.18.1",
   "verification": {
     "immutableInstall": "passed",
-    "yarnCheck": "passed: typecheck, lint, formatting, 31 Vitest tests and build",
+    "yarnCheck": "passed: typecheck, lint, formatting, 34 Vitest tests and build",
     "pythonGateway": "passed: five actual Unix socket/HTTP upstream tests, invoked from Vitest",
     "pythonSyntax": "passed for database, worker and model gateway modules",
     "realGit": "passed: two independent stores/worktrees; dirty source preserved; metadata links/alternates refused",
     "sqliteRestartAndPartialFailure": "passed: retained manifests/attempts; replay denied; ownership checked",
     "tamperedRuntimeInspection": "passed: network, privileges, resource limits, mount and security-option tampering refused",
     "hostIntegrationCommand": "CF_HOST_VERIFY=disposable-synthetic-only node --import tsx test/environment-host.ts",
-    "hostIntegrationResult": "blocked before fixture creation: no existing Linux Docker engine/binary in this container",
-    "newPostgres18Restore": "not run",
-    "newWorkerBoundary": "not run",
-    "hostVscode": "not performed for new environments",
-    "diffWhitespace": "passed"
+    "hostIntegrationResult": "PASSED: reviewed scratch/cf-b2-host-HO7o9y with two independently prepared environments, source/attachment protection and successful readiness after SQLite reopen. Runtime profile matches current source.",
+    "newPostgres18Restore": "PASSED in both retained task clusters: PostgreSQL18.6/vector0.8.7 full source/clone inventory equality, restricted ownership, rolled-back task/shadow fixture migrations and live source inventory checks.",
+    "newWorkerBoundary": "PASSED through the real host harness: runtime inspection and probes for AppArmor/seccomp/non-root/capabilities/cgroup limits, credentials, IPv4/IPv6 denial, shared attachment mutation denial, DB admission/privileges, model availability/route denial and whole-worker stop/restart readiness.",
+    "hostVscode": "Pending manual opening/editing/diff confirmation for prepared workspaces on Ubuntu and an inspection devcontainer",
+    "diffWhitespace": "passed",
+    "workerSearchImage": "PASSED: reviewed derived worker image selected and successfully exercised in two full environment preparations",
+    "credentialPathGuard": "Synthetic manual check passed: visible paths rejected, missing paths and PermissionError treated as hidden, unexpected OSError propagated. This avoids a false readiness failure on an inaccessible root home.",
+    "hostEvidenceReview": "docs/experiments/b2-host-results/review.json; no claim of a live Docker inspection from the development container"
   },
   "acceptance": {
     "independentGitAndSourceProtection": "verified with real local Git",
-    "hostContainerPaths": "implemented; new host/container/VS Code evidence pending",
-    "taskConfigurationPortsOutputs": "implemented; namespace port checks pending live host verification",
-    "fullSyntheticPg18VectorSnapshot": "implemented; live verification pending",
-    "verifiedDatabaseMigrationTargets": "implemented; live verification pending",
-    "enforceableSecurityBoundary": "gateway unit/adversarial tests passed; integrated worker checks pending",
-    "retentionOnFailure": "verified locally; persistent Docker service/volume recovery pending",
-    "durableOwnershipAndConfiguration": "verified SQLite and Git paths; live DB/container evidence pending",
-    "inspectionReadinessDiagnostics": "implemented; local failure paths verified"
+    "hostContainerPaths": "Host/worker identical absolute Git paths passed; manual Ubuntu VS Code and inspection devcontainer confirmation pending",
+    "taskConfigurationPortsOutputs": "Passed two-environment host preparation, private namespace ports and persisted paths/configuration",
+    "fullSyntheticPg18VectorSnapshot": "Passed two real PostgreSQL18.6/vector0.8.7 full dumps/restores with matching inventories and post-migration source inventory checks",
+    "verifiedDatabaseMigrationTargets": "Passed role/database OID ownership checks and rolled-back task/shadow fixture migrations",
+    "enforceableSecurityBoundary": "Host runtime/probe gates passed for both environments; local protected mock HTTP gateway tests passed. Current host script has no separate mock-state counter; retained A2 evidence covers that earlier trial.",
+    "retentionOnFailure": "Prior failed host resources retained and local failure/replay tests passed; successful probe restarts passed. Database/daemon restart recovery not exercised.",
+    "durableOwnershipAndConfiguration": "Passed persisted SQLite environment/attempt records, exact supervisor manifests, per-task Git/root/volume/gateway/container ownership and state reopen checks",
+    "inspectionReadinessDiagnostics": "Passed full preparation and repeated readiness; earlier AppArmor/search failures were diagnosed and refused safely"
   },
   "readyForIssue5": false,
   "manualNextActions": [
-    "On the existing Ubuntu Docker host, use Node 26 and pinned Yarn; retain the reviewed immutable A2 worker/database images",
-    "Run the opt-in host integration command and inspect its retained report/manifests/logs; fix any failures without relaxing controls",
-    "Verify each retained worktree in Ubuntu VS Code and an inspection development container using identical absolute paths",
-    "Review new runtime/gateway/persistence evidence before accepting #4 or beginning #5"
+    "Open each prepared worktree in Ubuntu VS Code, edit/revert a disposable task fixture and confirm only the task diff changes",
+    "Confirm the same worktree opens in an inspection devcontainer mounted at its original absolute task-root path, without developer credential forwarding",
+    "Retain all successful and failed environments until explicitly authorized cleanup; no integration rerun is required for this reviewed source/profile",
+    "Record manual acceptance before treating #4 as complete or beginning #5 implementation"
   ],
   "restrictionsObserved": [
     "No Vela access",
@@ -76,7 +79,10 @@
     "runtime/environment/model_gateway.py",
     "runtime/environment/test_gateway.py",
     "test/environment.test.ts",
-    "test/environment-host.ts"
+    "test/environment-host.ts",
+    "runtime/environment/worker.Dockerfile",
+    "test/worker-image-host.ts",
+    "test/worker-image.test.ts"
   ],
   "cli": [
     "prepare <task-id> --environment-config <file>",
@@ -86,10 +92,68 @@
     "recover-environment <task-id> --attempt <id> --token <token>"
   ],
   "exampleOutput": {
-    "status": "illustrative only; no live successful environment prepared here",
+    "status": "Reviewed successful operator-host preparation/readiness; paths refer to retained host fixtures",
     "readiness": {
       "ready": true,
-      "worktree": "/srv/code-foundry/tasks/<owner>/worktree"
+      "worktree": "/tmp/cf-b2-host-HO7o9y/tasks/38f57402-2fcd-4cf0-9398-f8a75fa337ed/worktree"
     }
-  }
+  },
+  "hostReviews": [
+    {
+      "export": "scratch/cf-b2-host-kITVNN",
+      "complete": false,
+      "databaseContainerId": "71444e7bc78ed15f06cbb9c26fb6709744a4730b86d5c3552b6917dc65a20ac5",
+      "observedState": "created",
+      "observedAppArmorProfile": "",
+      "finding": "Verifier incorrectly required active AppArmorProfile before container startup. No database service or worker ran in this attempt.",
+      "fix": "Explicit apparmor=docker-default request; separate creation and started checks; active-profile inspection after start and in-worker enforcement check.",
+      "verification": "Local regressions cover empty created profile with explicit request, missing request, unconfined profile, invalid lifecycle state and empty started profile. Host rerun pending."
+    },
+    {
+      "export": "scratch/cf-b2-host-hvKz7l",
+      "complete": false,
+      "runtimeProfileMatchedSourceAtReview": true,
+      "databaseContainerId": "6d0755f5f094008b96ad8e51a09de5d7a6eb31e0fccef0f766ddc1d9d6eef9ce",
+      "workerContainerId": "6b4a204d2d296836152b4659eff5f00c79851e0574b359f3a95f5f507b7ca199",
+      "database": "PostgreSQL18.6/vector0.8.7 source/clone inventory equality and restricted role ownership recorded",
+      "workerReportedState": "exited",
+      "workerReportedExitCode": 1,
+      "workerReportedAppArmor": "docker-default",
+      "failure": "Readiness check failed: searchTools",
+      "nextAction": "Use test/worker-image-host.ts --build-candidate to distinguish missing standalone ripgrep from worktree/execute failures; build and review a candidate only if missing. No pin relaxation."
+    },
+    {
+      "export": "scratch/cf-b2-host-HO7o9y",
+      "complete": true,
+      "profileMatchesCurrentSource": true,
+      "environments": 2,
+      "review": "docs/experiments/b2-host-results/review.json",
+      "manualAcceptancePending": true
+    }
+  ],
+  "workerImageReview": {
+    "export": "scratch/cf-b2-worker-image-502wly",
+    "scope": "Search capability review only; full B2 integration remains pending",
+    "baseImage": "sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b",
+    "buildReference": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+    "imageConfigDigestFromBuildLog": "sha256:2b19f04602f6a9429a4a1d2d2c95a84bd57d1f93b6c1cb9b4d0c09a67a811bc4",
+    "dockerfileSha256": "bb86277e75ff299c604ae6372ae1b77184f503349e1a762fd1892ddd6b3d9fd3",
+    "helperSha256AtRun": "ade44232432b2c9c7a178d9136d05ecb0f950af1ae7964196e1cd77e700ee036",
+    "sourceHashes": "Both matched local sources when the export was first reviewed, before adding canonical runtime identity diagnostics",
+    "recipeReview": "Derived from the reviewed A2 worker; installs only Debian ripgrep13.0.0-4+b2 and retains USER node",
+    "searchEvidence": "Original rg absent; candidate /usr/bin/rg13.0.0 version/file-list/content-search checks all passed; both stderr files empty",
+    "identityGap": "Resolved by operator-provided docker inspect of the existing candidate container: .Image matches buildReference, exitCode 0 and AppArmor docker-default",
+    "workerPinChanged": true,
+    "candidateContainerId": "ae30c353e9f97da52ba590e67c089d4bd43077a797f0067930f8aa9ad00cbc43",
+    "limitations": "Reviewed operator-exported reports, not live Docker inspection from this container; full worker/database/environment integration pending",
+    "runtimeInspection": {
+      "source": "Operator-provided filtered docker inspect in chat",
+      "imageId": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+      "exitCode": 0,
+      "apparmor": "docker-default"
+    },
+    "selectedWorkerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+    "selectionScope": "Pinned for B2 environment integration; full readiness remains mandatory and #4/#5 acceptance is pending"
+  },
+  "successfulHostReview": "docs/experiments/b2-host-results/review.json"
 }

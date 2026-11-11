@@ -1,0 +1,24 @@
+{
+  "export": "scratch/cf-b2-worker-image-502wly",
+  "scope": "Search capability review only; full B2 integration remains pending",
+  "baseImage": "sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b",
+  "buildReference": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+  "imageConfigDigestFromBuildLog": "sha256:2b19f04602f6a9429a4a1d2d2c95a84bd57d1f93b6c1cb9b4d0c09a67a811bc4",
+  "dockerfileSha256": "bb86277e75ff299c604ae6372ae1b77184f503349e1a762fd1892ddd6b3d9fd3",
+  "helperSha256AtRun": "ade44232432b2c9c7a178d9136d05ecb0f950af1ae7964196e1cd77e700ee036",
+  "sourceHashes": "Both matched local sources when the export was first reviewed, before adding canonical runtime identity diagnostics",
+  "recipeReview": "Derived from the reviewed A2 worker; installs only Debian ripgrep13.0.0-4+b2 and retains USER node",
+  "searchEvidence": "Original rg absent; candidate /usr/bin/rg13.0.0 version/file-list/content-search checks all passed; both stderr files empty",
+  "identityGap": "Resolved by operator-provided docker inspect of the existing candidate container: .Image matches buildReference, exitCode 0 and AppArmor docker-default",
+  "workerPinChanged": true,
+  "candidateContainerId": "ae30c353e9f97da52ba590e67c089d4bd43077a797f0067930f8aa9ad00cbc43",
+  "limitations": "Reviewed operator-exported reports, not live Docker inspection from this container; full worker/database/environment integration pending",
+  "runtimeInspection": {
+    "source": "Operator-provided filtered docker inspect in chat",
+    "imageId": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+    "exitCode": 0,
+    "apparmor": "docker-default"
+  },
+  "selectedWorkerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+  "selectionScope": "Pinned for B2 environment integration; full readiness remains mandatory and #4/#5 acceptance is pending"
+}

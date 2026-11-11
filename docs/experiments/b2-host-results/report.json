@@ -1,0 +1,272 @@
+{
+  "complete": true,
+  "environments": [
+    {
+      "taskId": "00c940a0-5f70-4103-a8bb-0a60fd22df79",
+      "attemptId": "ba9e8607-0aa7-4230-9112-217c50cbf752",
+      "owner": "38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "status": "ready",
+      "stage": "complete",
+      "error": null,
+      "createdAt": "2026-11-11T00:03:56.429Z",
+      "updatedAt": "2026-11-11T00:03:59.583Z",
+      "root": "/tmp/cf-b2-host-HO7o9y/tasks/38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "worktree": "/tmp/cf-b2-host-HO7o9y/tasks/38f57402-2fcd-4cf0-9398-f8a75fa337ed/worktree",
+      "branch": "cf-task-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+      "base": "5e5569e2d73b274b08d514c044004e478ce1aeee",
+      "config": {
+        "source": "/tmp/cf-b2-host-HO7o9y/source",
+        "shared": "/tmp/cf-b2-host-HO7o9y/shared",
+        "modelGateway": "/tmp/cf-b2-host-HO7o9y/model1",
+        "workerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+        "databaseImage": "sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db"
+      },
+      "profileHash": "dc24573245acad39686205756aba4900d3ed5dc9a25638eb341ceb4fbfcf6250",
+      "model": "gpt-oss:20b",
+      "resources": {
+        "databaseName": "cf-db-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "workerName": "cf-check-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "volumeName": "cf-data-38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+        "databaseId": "c0b1e7c843d9ca7005926e81db579a38a642cd84bf92cedce3abd9f9be12c00e",
+        "workerId": "c67658b5b63f33508ef4e1ecba67bbd242eb859723623fa5f682d801dffdfd9c"
+      },
+      "ports": {
+        "application": 3000,
+        "postgres": 6432,
+        "model": 4111
+      },
+      "gatewayIdentity": "dbc6b886526d79762cbb9c56387cac29aee2686c5a622ba2b94499cae5facdb1",
+      "filesystem": {
+        "device": 48,
+        "inode": 92296
+      },
+      "volumeIdentity": "2026-11-11T01:03:56+01:00|local|/var/lib/docker/volumes/cf-data-38f57402-2fcd-4cf0-9398-f8a75fa337ed/_data",
+      "database": {
+        "identity": {
+          "owner": "38f57402-2fcd-4cf0-9398-f8a75fa337ed",
+          "roleOid": "16384",
+          "databases": [
+            {
+              "name": "cf_shadowdb",
+              "oid": "17058",
+              "ownerOid": "16384"
+            },
+            {
+              "name": "cf_source",
+              "oid": "16385",
+              "ownerOid": "10"
+            },
+            {
+              "name": "cf_taskdb",
+              "oid": "16729",
+              "ownerOid": "16384"
+            }
+          ],
+          "version": "180006"
+        },
+        "sourceInventory": {
+          "rows": [
+            {
+              "id": 1,
+              "embedded_token": "invented-no-authority-token",
+              "embedding": "[1,2,3]"
+            },
+            {
+              "id": 2,
+              "embedded_token": "synthetic-secret",
+              "embedding": "[3,2,1]"
+            }
+          ],
+          "vectors": ["[1,2,3]", "[3,2,1]"],
+          "tables": 2,
+          "indexes": 2,
+          "sequence": 7,
+          "largeObjects": 1,
+          "largeObjectContents": ["010203"],
+          "indexDefinitions": [
+            "CREATE INDEX fixture_hnsw ON public.source_fixture USING hnsw (embedding vector_l2_ops)",
+            "CREATE UNIQUE INDEX source_fixture_pkey ON public.source_fixture USING btree (id)"
+          ],
+          "schemaInventory": [
+            ["S", "fixture_sequence"],
+            ["i", "fixture_hnsw"],
+            ["i", "source_fixture_pkey"],
+            ["r", "source_fixture"],
+            ["v", "fixture_view"]
+          ],
+          "viewRows": 2,
+          "vectorVersion": "0.8.7"
+        },
+        "cloneInventory": {
+          "rows": [
+            {
+              "id": 1,
+              "embedded_token": "invented-no-authority-token",
+              "embedding": "[1,2,3]"
+            },
+            {
+              "id": 2,
+              "embedded_token": "synthetic-secret",
+              "embedding": "[3,2,1]"
+            }
+          ],
+          "vectors": ["[1,2,3]", "[3,2,1]"],
+          "tables": 2,
+          "indexes": 2,
+          "sequence": 7,
+          "largeObjects": 1,
+          "largeObjectContents": ["010203"],
+          "indexDefinitions": [
+            "CREATE INDEX fixture_hnsw ON public.source_fixture USING hnsw (embedding vector_l2_ops)",
+            "CREATE UNIQUE INDEX source_fixture_pkey ON public.source_fixture USING btree (id)"
+          ],
+          "schemaInventory": [
+            ["S", "fixture_sequence"],
+            ["i", "fixture_hnsw"],
+            ["i", "source_fixture_pkey"],
+            ["r", "source_fixture"],
+            ["v", "fixture_view"]
+          ],
+          "viewRows": 2,
+          "vectorVersion": "0.8.7"
+        },
+        "serviceUid": 999,
+        "ready": true
+      }
+    },
+    {
+      "taskId": "95897e46-8da5-441e-9aef-5953badfee39",
+      "attemptId": "610bed4a-1d41-433c-8442-c0eec5788e38",
+      "owner": "36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "status": "ready",
+      "stage": "complete",
+      "error": null,
+      "createdAt": "2026-11-11T00:04:00.366Z",
+      "updatedAt": "2026-11-11T00:04:03.447Z",
+      "root": "/tmp/cf-b2-host-HO7o9y/tasks/36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "worktree": "/tmp/cf-b2-host-HO7o9y/tasks/36e049c9-ef3f-4128-a8f3-536dbbd02fe9/worktree",
+      "branch": "cf-task-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+      "base": "5e5569e2d73b274b08d514c044004e478ce1aeee",
+      "config": {
+        "source": "/tmp/cf-b2-host-HO7o9y/source",
+        "shared": "/tmp/cf-b2-host-HO7o9y/shared",
+        "modelGateway": "/tmp/cf-b2-host-HO7o9y/model2",
+        "workerImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+        "databaseImage": "sha256:42f51c32e76023298c26768b79fc32456feb4e49765fcf31b391891d4d7095db"
+      },
+      "profileHash": "dc24573245acad39686205756aba4900d3ed5dc9a25638eb341ceb4fbfcf6250",
+      "model": "gpt-oss:20b",
+      "resources": {
+        "databaseName": "cf-db-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "workerName": "cf-check-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "volumeName": "cf-data-36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+        "databaseId": "7e205d1364bd44f3d411add23bba04d2d6311cff77926ddc60854ac1c8d888dc",
+        "workerId": "4036686c6fefdc5a00fc3134b4fb77521f20388dbb3c8db5be3c54c21cb7be2d"
+      },
+      "ports": {
+        "application": 3000,
+        "postgres": 6432,
+        "model": 4111
+      },
+      "gatewayIdentity": "6180f377f3e0d3601c8676efa84747360b2a399275054974db81d13a3d19a5b4",
+      "filesystem": {
+        "device": 48,
+        "inode": 92400
+      },
+      "volumeIdentity": "2026-11-11T01:04:00+01:00|local|/var/lib/docker/volumes/cf-data-36e049c9-ef3f-4128-a8f3-536dbbd02fe9/_data",
+      "database": {
+        "identity": {
+          "owner": "36e049c9-ef3f-4128-a8f3-536dbbd02fe9",
+          "roleOid": "16384",
+          "databases": [
+            {
+              "name": "cf_shadowdb",
+              "oid": "17058",
+              "ownerOid": "16384"
+            },
+            {
+              "name": "cf_source",
+              "oid": "16385",
+              "ownerOid": "10"
+            },
+            {
+              "name": "cf_taskdb",
+              "oid": "16729",
+              "ownerOid": "16384"
+            }
+          ],
+          "version": "180006"
+        },
+        "sourceInventory": {
+          "rows": [
+            {
+              "id": 1,
+              "embedded_token": "invented-no-authority-token",
+              "embedding": "[1,2,3]"
+            },
+            {
+              "id": 2,
+              "embedded_token": "synthetic-secret",
+              "embedding": "[3,2,1]"
+            }
+          ],
+          "vectors": ["[1,2,3]", "[3,2,1]"],
+          "tables": 2,
+          "indexes": 2,
+          "sequence": 7,
+          "largeObjects": 1,
+          "largeObjectContents": ["010203"],
+          "indexDefinitions": [
+            "CREATE INDEX fixture_hnsw ON public.source_fixture USING hnsw (embedding vector_l2_ops)",
+            "CREATE UNIQUE INDEX source_fixture_pkey ON public.source_fixture USING btree (id)"
+          ],
+          "schemaInventory": [
+            ["S", "fixture_sequence"],
+            ["i", "fixture_hnsw"],
+            ["i", "source_fixture_pkey"],
+            ["r", "source_fixture"],
+            ["v", "fixture_view"]
+          ],
+          "viewRows": 2,
+          "vectorVersion": "0.8.7"
+        },
+        "cloneInventory": {
+          "rows": [
+            {
+              "id": 1,
+              "embedded_token": "invented-no-authority-token",
+              "embedding": "[1,2,3]"
+            },
+            {
+              "id": 2,
+              "embedded_token": "synthetic-secret",
+              "embedding": "[3,2,1]"
+            }
+          ],
+          "vectors": ["[1,2,3]", "[3,2,1]"],
+          "tables": 2,
+          "indexes": 2,
+          "sequence": 7,
+          "largeObjects": 1,
+          "largeObjectContents": ["010203"],
+          "indexDefinitions": [
+            "CREATE INDEX fixture_hnsw ON public.source_fixture USING hnsw (embedding vector_l2_ops)",
+            "CREATE UNIQUE INDEX source_fixture_pkey ON public.source_fixture USING btree (id)"
+          ],
+          "schemaInventory": [
+            ["S", "fixture_sequence"],
+            ["i", "fixture_hnsw"],
+            ["i", "source_fixture_pkey"],
+            ["r", "source_fixture"],
+            ["v", "fixture_view"]
+          ],
+          "viewRows": 2,
+          "vectorVersion": "0.8.7"
+        },
+        "serviceUid": 999,
+        "ready": true
+      }
+    }
+  ],
+  "manual": "Open both printed worktree paths in host VS Code and a devcontainer with identical absolute mounts; verify editing/diff. This is not automated."
+}

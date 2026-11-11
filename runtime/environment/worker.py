@@ -26,12 +26,20 @@ def denied(operation):
         return True
     return False
 
+def hidden_path(path):
+    try:
+        return not Path(path).exists()
+    except PermissionError:
+        # An inaccessible supervisor home is an expected boundary, not a probe error.
+        return True
+
 def connect(family, address):
     with socket.socket(family) as connection:
         connection.settimeout(1)
         connection.connect(address)
 
 check('nonRoot', lambda: os.getuid() != 0)
+check('apparmorEnforced', lambda: Path('/proc/self/attr/current').read_text().strip() == 'docker-default (enforce)')
 status = Path('/proc/self/status').read_text()
 check('noNewPrivileges', lambda: 'NoNewPrivs:\t1' in status)
 check('seccompFilter', lambda: 'Seccomp:\t2' in status)
@@ -39,8 +47,10 @@ check('memoryLimit', lambda: Path('/sys/fs/cgroup/memory.max').read_text().strip
 check('pidLimit', lambda: Path('/sys/fs/cgroup/pids.max').read_text().strip() == '128')
 check('cpuLimit', lambda: Path('/sys/fs/cgroup/cpu.max').read_text().strip() == '200000 100000')
 check('noCapabilities', lambda: 'CapEff:\t0000000000000000' in status)
-check('searchTools', lambda: shutil.which('rg') is not None and subprocess.run(['rg', '--version'], capture_output=True).returncode == 0 and subprocess.run(['rg', '--files', str(root/'worktree')], capture_output=True).returncode == 0)
-check('noSupervisorCredentials', lambda: not any(Path(p).exists() for p in ['/control', '/var/run/docker.sock', '/root/.ssh', '/home/node/.ssh', '/home/node/.config/gh', '/home/node/.codex']))
+check('searchToolInstalled', lambda: shutil.which('rg') is not None)
+check('searchToolExecutable', lambda: subprocess.run(['rg', '--version'], capture_output=True, timeout=5).returncode == 0)
+check('searchToolWorktree', lambda: subprocess.run(['rg', '--files', str(root/'worktree')], capture_output=True, timeout=5).returncode == 0)
+check('noSupervisorCredentials', lambda: all(hidden_path(p) for p in ['/control', '/var/run/docker.sock', '/root/.ssh', '/home/node/.ssh', '/home/node/.config/gh', '/home/node/.codex']))
 check('cleanEnvironment', lambda: not any(os.environ.get(k) for k in ['GH_TOKEN','GITHUB_TOKEN','SSH_AUTH_SOCK','OPENAI_API_KEY','DATABASE_URL']))
 check('sourceAbsent', lambda: not Path(sys.argv[4]).exists())
 check('ipv4Denied', lambda: denied(lambda: connect(socket.AF_INET, ('1.1.1.1',443))))

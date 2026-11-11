@@ -1,0 +1,26 @@
+{
+  "complete": true,
+  "baseImage": "sha256:ed438643c34417030e7043f07efe12b1756a0a3104b44610e800839a96e39d6b",
+  "pinsChanged": false,
+  "scope": "Synthetic search capability/candidate image check; not integrated B2 acceptance",
+  "dockerfileSha256": "bb86277e75ff299c604ae6372ae1b77184f503349e1a762fd1892ddd6b3d9fd3",
+  "helperSha256": "ade44232432b2c9c7a178d9136d05ecb0f950af1ae7964196e1cd77e700ee036",
+  "originalContainerId": "3ca8c2af81fd2e853376626a09bfb9baa4b99e1535f2c759c172eda669fa9b55",
+  "original": {
+    "path": null,
+    "available": false
+  },
+  "baseAlias": "code-foundry-b2-worker-base:cf-b2-worker-image-502wly",
+  "candidateImage": "sha256:612b2be5a3d9d21d79030001f74b89870db1fe0af923847afa88629500a1cafc",
+  "candidateContainerId": "ae30c353e9f97da52ba590e67c089d4bd43077a797f0067930f8aa9ad00cbc43",
+  "candidate": {
+    "path": "/usr/bin/rg",
+    "available": true,
+    "versionExit": 0,
+    "filesExit": 0,
+    "searchExit": 0,
+    "version": ["ripgrep 13.0.0"],
+    "fixtureListed": true
+  },
+  "nextAction": "Copy this report folder to scratch for review. The candidate is not approved or selected; its immutable ID must be reviewed before B2 integration is rerun."
+}
