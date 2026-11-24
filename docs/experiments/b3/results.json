@@ -1,0 +1,164 @@
+{
+  "complete": true,
+  "scope": "Issue #5 complete: bounded OpenCode execution/session handling and deterministic validation, with real OpenCode/Ollama representative-host acceptance and separately identified deterministic failure evidence",
+  "localImplementationComplete": true,
+  "localVerificationComplete": true,
+  "executionImplementationHash": "a733dd6cb1dabbca40853f44da284ca83efb3ba781b187abfe9f460512ae15c3",
+  "b2ProfileHash": "a742706adc02748181524fc34cf992056519d9b8cd23b8faabc2530767bb9cff",
+  "localCheck": {
+    "immutableInstall": true,
+    "yarnCheck": true,
+    "tests": 55,
+    "node": "26.13.0",
+    "yarn": "4.18.1"
+  },
+  "vmProfile": {
+    "vcpus": 2,
+    "memoryMiB": 3072,
+    "translationCacheMiB": 64,
+    "cpu": "max,la57=off",
+    "translationThreads": "single"
+  },
+  "imagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+  "trials": [
+    {
+      "report": "scratch/integration-9qmwqxrk/report.json",
+      "suiteComplete": false,
+      "elapsedSeconds": 974.78,
+      "vmStopped": true,
+      "diskRemoved": true,
+      "sourceSha256": "8e2fa9a5e11a839a1fb22ad2cf0d9f5f92a7e50ecc56320338b93b94e774ce33",
+      "executionImplementationHash": "2ff5f65190720345e2717ea1f3d63b0f2354e85f2f6813a276afd95fcccecb2f",
+      "executionOutcome": "failed",
+      "session": null,
+      "sameSessionInAllNativeEvents": false,
+      "codingExits": [1],
+      "validationExits": [[]],
+      "nativeToolEvents": 0,
+      "grantedModelToolCalls": 0,
+      "modelRequests": 0,
+      "deniedAttachmentWriteEvents": 0,
+      "failure": "The 10-second pinned-binary version probe expired under TCG before any coding session; changed to a finite 60-second probe inside the unchanged shared attempt deadline."
+    },
+    {
+      "report": "scratch/integration-qrug29jk/report.json",
+      "suiteComplete": false,
+      "elapsedSeconds": 1337.16,
+      "vmStopped": true,
+      "diskRemoved": true,
+      "sourceSha256": "d866916d53047aa4f5b5be21e7c9e676bd3d83e269c28f8767c47840382e0734",
+      "executionImplementationHash": "879c37b1b40eebaa3ddd83228c4b7f12d35dfd7bcfe9eb391b7cdf655df04d8b",
+      "executionOutcome": "candidate-ready",
+      "session": "ses_e32d22a23ffeGMg2IC6NxI2OpK",
+      "sameSessionInAllNativeEvents": true,
+      "codingExits": [0, 0],
+      "validationExits": [[1], [0]],
+      "nativeToolEvents": 2,
+      "grantedModelToolCalls": 3,
+      "modelRequests": 5,
+      "deniedAttachmentWriteEvents": 2,
+      "failure": "Controller reached candidate-ready after native repair and validation. The fixture then incorrectly required exactly two granted model calls; three proposed calls and two executed native tool events were observed across five requests. The corrected fixture checks executed events and the configured upper budget without assuming native auxiliary-request counts."
+    },
+    {
+      "report": "scratch/integration-fdtmaefk/report.json",
+      "suiteComplete": false,
+      "intentionallyInterrupted": true,
+      "elapsedSeconds": 1131.41,
+      "vmStopped": true,
+      "diskRemoved": true,
+      "sourceSha256": "542d1d52e7ed551b2371cb9a9564d0572e7d7f442d6ecff9c66dbf29b248236b",
+      "reason": "Stopped the old-profile trial after review found the raw model socket exposed to validation and task-controlled Python import paths in trusted entrypoints; no success is claimed."
+    },
+    {
+      "report": "scratch/integration-bac6suzn/report.json",
+      "reportSha256": "7db1707890bbd819d388b725760ee78fc30b4101bcf2292a44b5551f063afc24",
+      "executionReportSha256": "9dedf06b8c19d6491f6825c3cc5be69ee96df4e08af34f2b94ca6bc5f172fe17",
+      "suiteComplete": true,
+      "elapsedSeconds": 1464.89,
+      "vmStopped": true,
+      "diskRemoved": true,
+      "sourceSha256": "e15810a39be4d43e5cabfeb9e6029cfd4badc4e700b3e5d0a88e0b4093c34066",
+      "executionImplementationHash": "2a89c56a277fea3ce104923e5688e45a12f051239ac4493ec091ba5f98501336",
+      "b2ProfileHash": "a742706adc02748181524fc34cf992056519d9b8cd23b8faabc2530767bb9cff",
+      "readyEnvironments": 2,
+      "isolationSmokeChecks": {
+        "apparmor": true,
+        "seccomp": true,
+        "noNewPrivileges": true,
+        "capabilities": true,
+        "cpuLimit": true,
+        "memoryLimit": true,
+        "pidLimit": true,
+        "readonlyRoot": true,
+        "readonlyAttachment": true,
+        "isolatedNetwork": true,
+        "bindMount": true,
+        "wholeWorkerTermination": true
+      },
+      "forbiddenUpstreamRequests": 0,
+      "executionOutcome": "candidate-ready",
+      "session": "ses_e32a74183ffeKFoa76OzgEks8e",
+      "nativeContinuationVerified": true,
+      "codingExits": [0, 0],
+      "validationExits": [[1], [0]],
+      "nativeToolEvents": 2,
+      "grantedModelToolCalls": 3,
+      "modelRequests": 5,
+      "taskControlledStartupModuleIgnored": true,
+      "testFilePreserved": true,
+      "boundaryDenialVerifiedByFixture": true,
+      "baselinePatch": "diff --git a/fixture.txt b/fixture.txt\nindex d816c58..c5e1786 100644\n--- a/fixture.txt\n+++ b/fixture.txt\n@@ -1 +1 @@\n-synthetic source\n+task 1 only\n",
+      "candidatePatch": "diff --git a/clamp.mjs b/clamp.mjs\nindex 0934081..645284b 100644\n--- a/clamp.mjs\n+++ b/clamp.mjs\n@@ -1 +1 @@\n-export const clamp = (value) => value;\n+export const clamp = (value,min,max) => Math.min(max,Math.max(min,value));\n\\ No newline at end of file\ndiff --git a/fixture.txt b/fixture.txt\nindex d816c58..c5e1786 100644\n--- a/fixture.txt\n+++ b/fixture.txt\n@@ -1 +1 @@\n-synthetic source\n+task 1 only\n",
+      "implementation": "export const clamp = (value,min,max) => Math.min(max,Math.max(min,value));",
+      "scope": "Real pinned OpenCode binary with scripted synthetic model responses, not real Ollama inference"
+    }
+  ],
+  "pending": [],
+  "evidenceLimits": [
+    "Native OpenCode 1.19.5 was executed in restricted workers; model responses and token accounting were scripted, not real Ollama inference.",
+    "Host acceptance is a reviewed operator-provided export, not live Docker attestation from this container. Vela, daemon restart recovery and production readiness remain outside scope.",
+    "Verified VM settings are preserved. Successful runs do not establish the cause of earlier kernel panics or long-term emulator stability.",
+    "Private raw session logs, credentials and database state are not copied into this repository summary."
+  ],
+  "velaAccessed": false,
+  "priorB2ProfileHash": "dc24573245acad39686205756aba4900d3ed5dc9a25638eb341ceb4fbfcf6250",
+  "earlierHostExportMatchesCurrentProfile": false,
+  "profileChange": "Trusted readiness Python now uses isolated mode to exclude task-controlled import paths and user-site startup hooks. B3 coding, validation and diff workers all use the budgeted model socket and isolated trusted startup. Container flags and reviewed image IDs are unchanged. Old environment fingerprints are rejected, not automatically re-signed.",
+  "hostAttempts": [
+    "docs/experiments/b3/host-2026-11-23.json",
+    "docs/experiments/b3/host-2026-11-23-2.json",
+    "docs/experiments/b3/host-2026-11-24.json"
+  ],
+  "latestProtocolRegression": {
+    "scope": "Pinned OpenCode 1.19.5 with fixed text responses and every tool denied; no coding, real inference or host Docker",
+    "observations": [
+      {
+        "explicitTitle": false,
+        "initialExit": 1,
+        "nativeContinuationVerified": false,
+        "upstreamCalls": 1,
+        "requests": 1,
+        "toolsGranted": 0,
+        "denial": {
+          "reason": "concurrent-request"
+        }
+      },
+      {
+        "explicitTitle": true,
+        "initialExit": 0,
+        "nativeContinuationVerified": true,
+        "upstreamCalls": 2,
+        "requests": 2,
+        "toolsGranted": 0,
+        "denial": null
+      }
+    ]
+  },
+  "latestChangeScope": "The corrected terminal-disposition parser and explicit native CLI title passed the full real-model host controller path. The accepted host implementation hash matches current production source. Historical VM/failed-host reports retain their original hashes, outcomes and evidence limits.",
+  "realModelAcceptanceComplete": true,
+  "renewedHostProfileVerificationComplete": true,
+  "acceptedHostReview": "docs/experiments/b3/host-2026-11-24.json",
+  "acceptedHostExportMatchesCurrentProfile": true,
+  "runnerGithubMutations": false,
+  "administrativePublication": "Commit, push and issue closure are separately authorized by the user; Git history and issue state record those actions."
+}

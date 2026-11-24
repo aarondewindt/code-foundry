@@ -82,7 +82,7 @@ def download(artifact, directory):
 def snapshot(repository, destination):
     """Explicit source/dependency inputs, no .git, homes, state or scratch exports."""
     candidates = [repository / 'package.json', repository / 'yarn.lock']
-    for directory, suffixes in [('src', {'.ts'}), ('runtime/environment', {'.py', '.Dockerfile'}),
+    for directory, suffixes in [('src', {'.ts'}), ('runtime/environment', {'.py', '.Dockerfile'}), ('runtime/execution', {'.py'}),
                                 ('test', {'.ts'})]:
         candidates.extend(p for p in (repository / directory).rglob('*') if p.suffix in suffixes)
     candidates.extend((repository / 'node_modules').rglob('*'))
@@ -325,6 +325,9 @@ def run(args):
             with (directory / 'environment.json').open('wb') as output:
                 guest.command('cat /home/cf/environment-report.json', output_file=output)
             environment = json.loads((directory / 'environment.json').read_text())
+            with (directory / 'execution.json').open('wb') as output:
+                guest.command('cat /home/cf/execution-report.json', output_file=output)
+            report['execution'] = json.loads((directory / 'execution.json').read_text())
             if environment.get('complete') is not True:
                 raise RuntimeError('Environment integration did not report success')
             report['environment'] = environment

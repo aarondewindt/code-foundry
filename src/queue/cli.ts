@@ -1,4 +1,5 @@
 import { EnvironmentManager } from '../environment/manager.js';
+import { ExecutionController } from '../execution/controller.js';
 import { readEnvironmentConfig } from '../environment/system.js';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -13,6 +14,8 @@ export const queueUsage = `Queue commands (JSON output):
   enqueue <issue URL | owner/repo#number | number> --config <file> --approved-by <source>
     [--profile <name>] [--model <model>] [--runtime-seconds <seconds>]
   prepare <id> --environment-config <file>
+  execute <id>                  Run one approved task in its ready B2 environment
+  execution <attempt-id>        Inspect durable execution evidence
   environment <id>
   environment-owner <id>       Supervisor-only recovery token
   readiness <id>
@@ -26,9 +29,9 @@ export const queueUsage = `Queue commands (JSON output):
 All commands accept --db <file>. Default: $XDG_STATE_HOME/code-foundry/state.sqlite
 (or ~/.local/state/code-foundry/state.sqlite).
 An active claim survives restart and requires explicit owner reconciliation.
-No agent execution or GitHub writes are implemented.`;
+Execution never performs GitHub writes. Interrupted executions require explicit reconciliation.`;
 
-export function queueCommand(args: string[]): unknown {
+export async function queueCommand(args: string[]): Promise<unknown> {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -49,6 +52,8 @@ export function queueCommand(args: string[]): unknown {
   const allowed: Record<string, string[]> = {
     enqueue: ['config', 'approved-by', 'profile', 'model', 'runtime-seconds'],
     prepare: ['environment-config'],
+    execute: [],
+    execution: [],
     environment: [],
     'environment-owner': [],
     readiness: [],
@@ -103,6 +108,15 @@ export function queueCommand(args: string[]): unknown {
   try {
     const manager = new EnvironmentManager(store, db);
     switch (command) {
+      case 'execute': {
+        const task = store.get(subject!);
+        return await new ExecutionController(store, manager).execute(
+          task.id,
+          fetchIssue({ repository: task.repository, number: task.number }),
+        );
+      }
+      case 'execution':
+        return store.execution(subject!);
       case 'prepare': {
         if (!values['environment-config'])
           throw new Error('prepare requires --environment-config');

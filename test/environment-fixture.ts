@@ -16,11 +16,19 @@ import { DockerRuntime, reviewedImages } from '../src/environment/runtime.js';
 import { QueueStore } from '../src/queue/store.js';
 import type { Project } from '../src/queue/config.js';
 import type { IssueSnapshot } from '../src/queue/github.js';
+import type { Environment } from '../src/environment/types.js';
 
 export async function runEnvironmentFixture(options: {
   retainGateways: boolean;
   reportPath?: string;
   verifyFailures?: boolean;
+  executionFixture?: boolean;
+  onReady?: (
+    store: QueueStore,
+    manager: EnvironmentManager,
+    environment: Environment,
+    issue: IssueSnapshot,
+  ) => Promise<void>;
 }) {
   const gateways: ChildProcess[] = [];
   const root = mkdtempSync(join(tmpdir(), 'cf-b2-fixture-'));
@@ -54,6 +62,16 @@ export async function runEnvironmentFixture(options: {
     'code-foundry-synthetic-v1\n',
   );
   writeFileSync(join(source, 'fixture.txt'), 'synthetic source\n');
+  if (options.executionFixture) {
+    writeFileSync(
+      join(source, 'clamp.mjs'),
+      'export const clamp = (value) => value;\n',
+    );
+    writeFileSync(
+      join(source, 'clamp.test.mjs'),
+      "import {test} from 'node:test'; import assert from 'node:assert/strict'; import {clamp} from './clamp.mjs'; test('bounds',()=>{assert.equal(clamp(-2,0,10),0);assert.equal(clamp(12,0,10),10);});\n",
+    );
+  }
   git('-C', source, 'add', '.');
   git(
     '-C',
@@ -82,9 +100,9 @@ export async function runEnvironmentFixture(options: {
         agent: 'build',
         provider: 'ollama',
         model: 'gpt-oss:20b',
-        runtimeSeconds: 120,
+        runtimeSeconds: options.executionFixture ? 600 : 120,
         maxToolCalls: 16,
-        maxRepairs: 0,
+        maxRepairs: options.executionFixture ? 1 : 0,
       },
     },
     allowedOverrides: [],
@@ -130,7 +148,9 @@ export async function runEnvironmentFixture(options: {
         number,
         url: `https://github.com/synthetic/fixture/issues/${number}`,
         title: 'Explicit synthetic integration fixture',
-        body: 'Synthetic verification, not a GitHub issue admission',
+        body: options.executionFixture
+          ? 'Explicitly approved synthetic implementation ticket: implement named ESM clamp(value,min,max), returning min for values below min, max above max, and the unchanged value otherwise. Change only clamp.mjs and preserve clamp.test.mjs. No network, external services, GitHub operations or publication are authorized. This local fixture is not a GitHub issue admission.'
+          : 'Synthetic verification, not a GitHub issue admission',
         state: 'open',
         labels: [],
         comments: [],
@@ -174,6 +194,13 @@ export async function runEnvironmentFixture(options: {
       store = new QueueStore(db);
       assert.deepEqual(store.environment(task.id), env);
       new EnvironmentManager(store, db).check(env);
+      if (number === 1 && options.onReady)
+        await options.onReady(
+          store,
+          new EnvironmentManager(store, db),
+          env,
+          issue,
+        );
       if (options.verifyFailures) {
         const manifest = join(root, `model${number}.gateway.json`);
         const originalManifest = readFileSync(manifest, 'utf8');
@@ -247,7 +274,9 @@ export async function runEnvironmentFixture(options: {
       },
     );
     console.log(
-      'Fixture resources retained by the manager; outer disposable VM owns guest teardown.',
+      options.retainGateways
+        ? 'Host fixture resources and gateways retained; no automatic cleanup occurred.'
+        : 'Fixture resources retained by the manager; outer disposable VM owns guest teardown.',
     );
   }
 

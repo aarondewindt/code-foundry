@@ -160,8 +160,9 @@ image ID matches the exported build reference, with exit code 0 and AppArmor
 `docker-default`. That exact image is now selected in `reviewedImages.worker`.
 The build log's separate config digest is retained as provenance, not substituted
 for the observed runtime ID. The helper now captures image/container identities
-separately. Full B2 integration remains pending; rerun the two-environment host
-script with this pin and retain all earlier failed environments.
+separately. Full B2 integration was still pending at that image review; the later
+two-environment host acceptance below completed it. Earlier failed environments
+and evidence remain retained.
 
 The runtime inspects actual container image/ID/ownership, user, private network,
 PID/IPC/cgroup namespaces, read-only root, capability drop, no-new-privileges,
@@ -312,7 +313,18 @@ inspection development container on 2026-11-12: changing the file in one worktre
 does not appear in the other's Git diff. The inspection configuration mounts each
 worktree and its independent Git store at their original absolute host paths.
 This completes the remaining manual acceptance for #4; no
-additional automated run is required for this reviewed profile. #5 still needs
-bounded OpenCode launch/session handling and validation; #9 needs real project
+additional automated run is required for this reviewed profile. The separate
+[#5 execution guide](execution.md) covers bounded launch/session handling,
+validation and recorded real-model acceptance; #9 needs real project
 migrations, existing-cluster safeguards and separately approved private-data
 integration.
+
+B3 subsequently isolates the trusted Python readiness entrypoint from worktree
+imports and user-site hooks. Container flags and approved image IDs are unchanged,
+but the source/profile fingerprint changes. The original host export above is
+preserved as historical acceptance of its exact source; it does not attest this
+new fingerprint. Existing prepared state fails closed rather than being silently
+re-signed. See the [B3 execution guide](execution.md) and its retained results for
+fresh guest verification and the completed 2026-11-24 renewed host/real-model
+acceptance. This acceptance is limited to the representative synthetic profile;
+the shared development container remains unsuitable for unattended coding.

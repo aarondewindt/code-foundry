@@ -2,7 +2,8 @@
 
 [Issue #3](https://github.com/aarondewindt/code-foundry/issues/3) owns the
 specification. These are operating instructions for the CLI/state implementation.
-There is no background worker or integrated OpenCode launch. A queue claim is a
+There is no background scheduler. The separate [execution command](execution.md)
+implements bounded OpenCode launch after B2 readiness. A manual queue claim is a
 manual state reservation; it does not establish that an implementation occurred.
 
 Create a local project config, for example `/tmp/code-foundry-project.json`:

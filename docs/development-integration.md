@@ -4,13 +4,18 @@ Normal development stays inside the unprivileged Code Foundry devcontainer.
 `yarn check` needs neither Docker nor a VM. `yarn test:integration:smoke` launches
 a disposable Ubuntu VM using QEMU software emulation; Docker runs only inside
 that guest. `yarn test:integration` additionally runs the real environment manager
-against two synthetic task environments. Neither command starts OpenCode.
+against two synthetic task environments and exercises the pinned OpenCode binary
+with scripted model responses. Neither command connects to real Ollama.
 
 [Issue #2](https://github.com/aarondewindt/code-foundry/issues/2) owns the safety
 boundary and [#4](https://github.com/aarondewindt/code-foundry/issues/4) owns
-environment acceptance. Guest results do not attest the actual Ubuntu host, close
-the B2 acceptance gap, or establish Vela compatibility. Historical A2/B2 evidence
-is unchanged. Runtime restrictions and approved image IDs are unchanged.
+environment acceptance. Guest results do not attest the actual Ubuntu host or
+establish Vela compatibility. Separate representative-host acceptance is retained
+in the B3 evidence. Historical A2/B2 evidence
+is unchanged. Container restrictions and approved image IDs are unchanged. B3
+adds isolated Python startup for trusted entrypoints; historical reports retain
+their original source/profile fingerprints. Current guest and accepted host
+evidence are in the [execution guide](execution.md).
 
 ## First use
 
@@ -113,8 +118,12 @@ No remote Docker path translation or production endpoint configuration is added.
 The shared fixture prepares two real Git/PostgreSQL 18/pgvector environments,
 checks independent storage, dirty-source/attachment preservation, real restricted
 worker readiness, gateway/database denials and migrations, then reopens SQLite
-and reruns readiness. A powerless synthetic model-list service on guest loopback
-11434 exercises the production gateway's fixed destination. It records forbidden
+and reruns readiness. A powerless synthetic model service on guest loopback
+11434 exercises the production gateway's fixed destination. B3 also runs real
+OpenCode with scripted responses through a failed validation and native-session
+repair, checks an attachment-write denial and task-controlled Python startup
+module isolation, and exports candidate/baseline diffs. This is not real-model
+acceptance. The service records forbidden
 upstream requests and requires there to be none. It never connects to real Ollama.
 
 ## Budgets, evidence and cleanup

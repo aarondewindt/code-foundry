@@ -8,6 +8,8 @@ export interface Profile {
   runtimeSeconds: number;
   maxToolCalls: number;
   maxRepairs: number;
+  instructions?: string[];
+  skills?: string[];
 }
 export interface Project {
   repository: string;
@@ -44,7 +46,7 @@ export function name(value: unknown): string {
   }
   return value;
 }
-function profile(value: unknown): Profile {
+export function validateProfile(value: unknown): Profile {
   const p = object(value);
   keys(p, [
     'agent',
@@ -53,6 +55,8 @@ function profile(value: unknown): Profile {
     'runtimeSeconds',
     'maxToolCalls',
     'maxRepairs',
+    'instructions',
+    'skills',
   ]);
   const result = {
     agent: name(p.agent),
@@ -61,12 +65,36 @@ function profile(value: unknown): Profile {
     runtimeSeconds: p.runtimeSeconds,
     maxToolCalls: p.maxToolCalls,
     maxRepairs: p.maxRepairs,
+    ...Object.fromEntries(
+      ['instructions', 'skills']
+        .filter((key) => p[key] !== undefined)
+        .map((key) => {
+          const paths = p[key];
+          if (
+            !Array.isArray(paths) ||
+            paths.length > 32 ||
+            paths.some(
+              (path: unknown) =>
+                typeof path !== 'string' ||
+                !/^[\w./-]+$/.test(path) ||
+                path.startsWith('/') ||
+                path.split('/').includes('..'),
+            )
+          )
+            throw new Error(
+              'Instructions and skills must be bounded project-relative paths',
+            );
+          return [key, paths];
+        }),
+    ),
   };
   for (const key of ['runtimeSeconds', 'maxToolCalls', 'maxRepairs'] as const) {
     const number = result[key];
     if (
       !Number.isSafeInteger(number) ||
-      (number as number) < (key === 'maxRepairs' ? 0 : 1)
+      (number as number) < (key === 'maxRepairs' ? 0 : 1) ||
+      (number as number) >
+        { runtimeSeconds: 3600, maxToolCalls: 1000, maxRepairs: 3 }[key]
     ) {
       throw new Error(
         'Profile limits must be finite nonnegative integers (runtime/tools positive)',
@@ -122,7 +150,7 @@ export function readProject(path: string): Project {
   const profiles = Object.fromEntries(
     Object.entries(object(p.profiles)).map(([key, value]) => [
       name(key),
-      profile(value),
+      validateProfile(value),
     ]),
   );
   const defaultProfile = name(p.defaultProfile);
@@ -170,5 +198,5 @@ export function resolveProfile(
   ) {
     throw new Error('Task override is not permitted by project configuration');
   }
-  return profile({ ...project.profiles[selectedName], ...overrides });
+  return validateProfile({ ...project.profiles[selectedName], ...overrides });
 }

@@ -30,7 +30,7 @@ Local-first AI development automation.
 ${queueUsage}`);
 } else {
   try {
-    console.log(JSON.stringify(queueCommand(args), null, 2));
+    console.log(JSON.stringify(await queueCommand(args), null, 2));
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'Command failed');
     process.exitCode = 1;

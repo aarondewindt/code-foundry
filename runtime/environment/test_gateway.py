@@ -43,7 +43,12 @@ class GatewayTests(unittest.TestCase):
     def request(self, method, path, value=None):
         connection = UnixHTTPConnection(self.path, timeout=3)
         try:
-            connection.request(method, path, None if value is None else json.dumps(value), {'Content-Type':'application/json'})
+            try:
+                connection.request(method, path, None if value is None else json.dumps(value), {'Content-Type':'application/json'})
+            except BrokenPipeError:
+                # A denied route may respond and close before the body send.
+                # Still require its actual HTTP status; a missing response fails.
+                pass
             response = connection.getresponse()
             return response.status, response.read()
         finally:

@@ -97,7 +97,7 @@ export class QueueStore {
             );
             PRAGMA user_version=1;
           `);
-        } else if (version !== 1 && version !== 2)
+        } else if (version !== 1 && version !== 2 && version !== 3)
           throw new Error('Unsupported state schema version');
         this.#db.exec(`
           CREATE TABLE IF NOT EXISTS environments (
@@ -105,7 +105,13 @@ export class QueueStore {
             attempt_id TEXT NOT NULL UNIQUE REFERENCES attempts(id),
             payload TEXT NOT NULL
           );
-          PRAGMA user_version=2;
+          CREATE TABLE IF NOT EXISTS executions (
+            attempt_id TEXT PRIMARY KEY REFERENCES attempts(id),
+            task_id TEXT NOT NULL REFERENCES tasks(id),
+            finished_at TEXT, payload TEXT NOT NULL
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS one_live_execution ON executions ((1)) WHERE finished_at IS NULL;
+          PRAGMA user_version=3;
         `);
       });
     } catch (error) {
@@ -263,6 +269,16 @@ export class QueueStore {
         throw new Error(
           'An execution claim is already active; reconcile it before continuing',
         );
+      if (
+        this.#db
+          .prepare(
+            'SELECT attempt_id FROM executions WHERE finished_at IS NULL',
+          )
+          .get()
+      )
+        throw new Error(
+          'An execution still requires termination reconciliation',
+        );
       if (fresh.repository !== task.repository || fresh.number !== task.number)
         throw new Error('Revalidation does not match task');
       const reason =
@@ -367,6 +383,72 @@ export class QueueStore {
   assertEnvironmentOwner(id: string, attemptId: string, token: string): void {
     this.#assertOwner(id, attemptId, token);
   }
+  execution(attemptId: string): unknown {
+    const row = this.#db
+      .prepare('SELECT payload FROM executions WHERE attempt_id=?')
+      .get(attemptId);
+    return row ? (JSON.parse(String(row.payload)) as unknown) : null;
+  }
+  saveExecution(
+    id: string,
+    ownership: { attemptId: string; token: string },
+    payload: unknown,
+    reserve = false,
+  ): void {
+    this.#transaction(() => {
+      this.#assertOwner(id, ownership.attemptId, ownership.token);
+      if (reserve)
+        this.#db
+          .prepare(
+            'INSERT INTO executions(attempt_id,task_id,payload) VALUES(?,?,?)',
+          )
+          .run(ownership.attemptId, id, JSON.stringify(payload));
+      else {
+        const result = this.#db
+          .prepare(
+            'UPDATE executions SET payload=? WHERE attempt_id=? AND finished_at IS NULL',
+          )
+          .run(JSON.stringify(payload), ownership.attemptId);
+        if (result.changes !== 1) throw new Error('Execution is not active');
+      }
+      this.#event(id, 'execution', payload);
+    });
+  }
+  finishExecution(
+    id: string,
+    ownership: { attemptId: string; token: string },
+    target: Status,
+    reason: string,
+    payload: unknown,
+  ): Task {
+    return this.#transaction(() => {
+      this.#assertOwner(id, ownership.attemptId, ownership.token);
+      if (
+        ![
+          'candidate-ready',
+          'blocked',
+          'failed',
+          'needs-local-repair',
+        ].includes(target)
+      )
+        throw new Error('Invalid execution outcome');
+      const now = new Date().toISOString();
+      const result = this.#db
+        .prepare(
+          'UPDATE executions SET finished_at=?,payload=? WHERE attempt_id=? AND finished_at IS NULL',
+        )
+        .run(now, JSON.stringify(payload), ownership.attemptId);
+      if (result.changes !== 1) throw new Error('Execution is not active');
+      this.#db
+        .prepare('UPDATE attempts SET finished_at=?,outcome=? WHERE id=?')
+        .run(now, target, ownership.attemptId);
+      const task = this.get(id);
+      Object.assign(task, { status: target, reason, updatedAt: now });
+      this.#save(task);
+      this.#event(id, 'execution-finished', { target, reason, payload });
+      return task;
+    });
+  }
   #assertOwner(id: string, attemptId: string, token: string): void {
     const row = this.#db
       .prepare(
@@ -393,6 +475,16 @@ export class QueueStore {
       if (!transitions[task.status].includes(target))
         throw new Error('Invalid task state transition');
       if (task.status === 'running') {
+        if (
+          this.#db
+            .prepare(
+              'SELECT attempt_id FROM executions WHERE task_id=? AND finished_at IS NULL',
+            )
+            .get(id)
+        )
+          throw new Error(
+            'Active execution requires verified termination; manual transitions refused',
+          );
         const attempt = this.#db
           .prepare(
             'SELECT id,token FROM attempts WHERE task_id=? AND finished_at IS NULL',

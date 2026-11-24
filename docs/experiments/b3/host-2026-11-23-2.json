@@ -1,0 +1,61 @@
+{
+  "complete": false,
+  "scope": "Reviewed operator-provided host export plus independent local review of the copied pure-code candidate; not live host attestation",
+  "hostExport": "scratch/cf-b3-host-Jxnira",
+  "fixtureExport": "scratch/cf-b2-fixture-sdMr0B",
+  "hostEvidenceSha256": {
+    "execution.json": "4cede8de93fb1e79264e8286a9a337260a082a91566d2f23c6c32b6f820945d1",
+    "environments.json": "ef73194159d63c35fe72e3d0ecfb7e280c2310e4b0c6648179b5e27ad73d7560"
+  },
+  "observed": {
+    "environmentReady": true,
+    "b2ProfileHash": "a742706adc02748181524fc34cf992056519d9b8cd23b8faabc2530767bb9cff",
+    "executionImplementationHash": "f97cf5075396606f770e281247a13954e63de32f173aa332059aed7414a4184e",
+    "executionOutcome": "needs-local-repair",
+    "session": "ses_df6129a23ffe3SvtSq5Hhrl3HQ",
+    "codingExits": [0],
+    "modelDenial": null,
+    "modelRequests": 5,
+    "grantedToolCalls": 4,
+    "nativeToolEvents": 4,
+    "toolNames": ["glob", "read", "apply_patch", "edit"],
+    "unavailableToolRecoveredByOpenCode": true,
+    "candidateMarkerAtEndOfSentence": true,
+    "hostControllerValidationRan": false
+  },
+  "cause": "The model emitted the required literal candidate marker at the end of a sentence. The controller incorrectly required its own line and classified the completed turn as needs-local-repair before validation.",
+  "fix": {
+    "executionImplementationHash": "a733dd6cb1dabbca40853f44da284ca83efb3ba781b187abfe9f460512ae15c3",
+    "terminalInlineMarkerAccepted": true,
+    "quotedExamplesAndTrailingExplanationRejected": true,
+    "staleMarkersClearedOnNewSteps": true,
+    "permissionsAndResourceBudgetsUnchanged": true
+  },
+  "verification": {
+    "yarnCheckPassed": true,
+    "tests": 55,
+    "capturedEventsReplay": {
+      "complete": true,
+      "disposition": "candidate",
+      "error": false,
+      "tools": 4,
+      "events": 17
+    },
+    "independentLocalCandidateReview": {
+      "sourceSha256": "83d17a428c56314f0f658116863cfdbe137fe075453325d63da67a1e71f52579",
+      "testFilePreserved": true,
+      "fixtureTestsPassed": 1,
+      "validNumericRangeCasesPassed": 37191,
+      "review": "Named pure ESM export implements the approved below-range, above-range and unchanged-value behavior. No imports, I/O or external calls.",
+      "implementation": "// Clamp a number between a minimum and maximum value.\n// Returns `min` if the input value is less than `min`.\n// Returns `max` if the input value is greater than `max`.\n// Otherwise returns the input value unchanged.\nexport const clamp = (value, min, max) => {\n  if (value < min) return min;\n  if (value > max) return max;\n  return value;\n};\n"
+    },
+    "controllerRegression": "An inline terminal marker triggers every configured independent validation command before candidate-ready. The model marker alone cannot establish readiness."
+  },
+  "limitations": [
+    "The original host attempt remains needs-local-repair; no state or evidence was rewritten as successful.",
+    "The copied candidate passed independent local validation; the actual host controller never reached its validation phase in this attempt.",
+    "A fresh end-to-end host trial using the corrected parser is still required before closing issue #5."
+  ],
+  "githubMutated": false,
+  "velaAccessed": false
+}

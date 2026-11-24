@@ -1,0 +1,68 @@
+{
+  "complete": false,
+  "scope": "Reviewed operator-provided synthetic host export; no live host Docker attestation",
+  "hostExport": "scratch/cf-b3-host-JijN2R",
+  "fixtureExport": "scratch/cf-b2-fixture-ESfRo5",
+  "hostEvidenceSha256": {
+    "execution.json": "3ba74b6de18a4ba2b9985f3b7d8eb3852d2a1fdd694fa58b69154a79aad84484",
+    "environments.json": "a6c236bd8cb22e2f238acda1e81c6a270822f31cf0b56e8ccdf812d44310725b"
+  },
+  "observed": {
+    "environmentReady": true,
+    "b2ProfileHash": "a742706adc02748181524fc34cf992056519d9b8cd23b8faabc2530767bb9cff",
+    "executionImplementationHash": "2a89c56a277fea3ce104923e5688e45a12f051239ac4493ec091ba5f98501336",
+    "executionOutcome": "blocked",
+    "session": "ses_df62c950effelly2lyqLeCxNaK",
+    "codingExits": [1],
+    "validationRan": false,
+    "modelRequests": 1,
+    "grantedToolCalls": 0,
+    "nativeApiStatuses": [403],
+    "automaticTitleRequestLogged": true,
+    "legacyDenialReason": null
+  },
+  "assessment": "Automatic title generation can overlap main inference and trip the mandatory single-inference limit. The pinned CLI and execution gateway reproduce the same one-request/zero-tool denial with a delayed fixed-text model fixture. Supplying the supported native --title option removes the contention and permits initial execution and continuation without changing concurrency or budgets.",
+  "limitations": [
+    "The original host execution record did not capture a denial reason, so its precise historical branch cannot be established from that record alone.",
+    "The controlled regression uses fixed text responses with every tool denied: it is not coding or real Ollama inference.",
+    "The corrected real OpenCode/Ollama host trial remains pending."
+  ],
+  "fix": {
+    "executionImplementationHash": "f97cf5075396606f770e281247a13954e63de32f173aa332059aed7414a4184e",
+    "explicitNativeTaskTitle": true,
+    "singleInferenceLimitUnchanged": true,
+    "structuredNonsecretModelDenial": true,
+    "hostFailureMessageClarified": true
+  },
+  "regression": {
+    "yarnCheckPassed": true,
+    "tests": 53,
+    "pinnedCliProtocol": {
+      "scope": "Pinned OpenCode 1.19.5 with fixed text responses and every tool denied; no coding, real inference or host Docker",
+      "observations": [
+        {
+          "explicitTitle": false,
+          "initialExit": 1,
+          "nativeContinuationVerified": false,
+          "upstreamCalls": 1,
+          "requests": 1,
+          "toolsGranted": 0,
+          "denial": {
+            "reason": "concurrent-request"
+          }
+        },
+        {
+          "explicitTitle": true,
+          "initialExit": 0,
+          "nativeContinuationVerified": true,
+          "upstreamCalls": 2,
+          "requests": 2,
+          "toolsGranted": 0,
+          "denial": null
+        }
+      ]
+    }
+  },
+  "githubMutated": false,
+  "velaAccessed": false
+}

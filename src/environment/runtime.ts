@@ -401,6 +401,7 @@ export class DockerRuntime {
       '--entrypoint',
       'python3',
       environment.config.workerImage,
+      '-I',
       '-c',
       script('worker'),
       environment.root,

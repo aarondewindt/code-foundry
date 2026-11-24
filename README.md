@@ -2,7 +2,8 @@
 
 Local-first AI development automation using OpenCode and local Ollama models.
 This repository contains development tooling and a persistent approved-ticket CLI.
-No background worker or integrated agent execution is enabled.
+The CLI can execute an approved synthetic task in its verified restricted B2
+environment. No background scheduler or automatic recovery is enabled.
 
 ## Development container
 
@@ -156,10 +157,11 @@ are independent manual reviews using ChatGPT/Codex or Claude.
 
 The [approved-ticket CLI guide](docs/queue.md) covers project/profile configuration,
 explicit approval, GitHub issue intake, SQLite state, inspection and manual claims.
-State uses Node 26's built-in SQLite driver. Claims persist across restart; the CLI
-does not launch an agent or implement unattended recovery.
+State uses Node 26's built-in SQLite driver. Claims persist across restart.
+The [OpenCode execution guide](docs/execution.md) covers bounded execution,
+session continuation, deterministic validation and recorded real-model acceptance.
 The [environment preparation guide](docs/environments.md) covers the new #4 CLI,
-resource ownership, synthetic PostgreSQL service and pending host integration.
+resource ownership, synthetic PostgreSQL service and recorded host acceptance.
 
 [GitHub issues](https://github.com/aarondewindt/code-foundry/issues) are the detailed
 roadmap. [A1](docs/opencode-ollama.md) records supervised representative OpenCode
@@ -168,10 +170,11 @@ worktree, skill, coding and continuation evidence with independent review.
 profile: filesystem/credential/network restrictions, service gateways, host
 worktrees, whole-container termination, PostgreSQL 18/pgvector and a real local
 OpenCode trial passed. The shared development container remains **NO-GO** for
-unattended agents. B2/B3 must implement the demonstrated controls and fail-closed
-readiness before execution is enabled. See the
+unattended agents. B2/B3 implement the demonstrated controls and fail-closed
+readiness for bounded synthetic tasks. See the
 [A2 host procedure](docs/experiments/a2/host-procedure.md) for evidence and limits;
-the new #4 implementation requires its own host verification before acceptance. Imported host
+the current representative-host acceptance is recorded in the
+[B3 results](docs/experiments/b3/host-2026-11-24.json). Imported host
 exports belong under ignored `scratch/`; lint/format checks exclude them and
 Vitest discovers only repository tests under `test/`.
 

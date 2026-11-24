@@ -1,0 +1,55 @@
+{
+  "complete": true,
+  "scope": "Reviewed operator-run real OpenCode/Ollama acceptance on two disposable synthetic host environments; not Vela or production approval",
+  "hostExport": "scratch/cf-b3-host-oPFzu9",
+  "fixtureExport": "scratch/cf-b2-fixture-c8AUf4",
+  "hostEvidenceSha256": {
+    "execution.json": "47ef9913d54615dbc671e2765011bec1e1f317000f9f91218ee35cb6556d5cb1",
+    "environments.json": "be4131520bf7eaecdad89cfb540d74aa8a5ffa54c75c6d0193462af5d1bc7c91",
+    "baseline-diff.patch": "6e3aa1e1152a65be866f969fb386fd4afa2074971d971a74ac3dac8f61553bac",
+    "candidate-diff.patch": "2e50cd78ae5ee3e32f1d0f89ccf91ee15d3d53108a9a02657921a262670f7c1f"
+  },
+  "executionImplementationHash": "a733dd6cb1dabbca40853f44da284ca83efb3ba781b187abfe9f460512ae15c3",
+  "b2ProfileHash": "a742706adc02748181524fc34cf992056519d9b8cd23b8faabc2530767bb9cff",
+  "hostHelperSha256": "fc5cb8d11b4a4c37f9c77d52bbb590a65f149bae986813b9d4b82b14f599781c",
+  "fixtureSha256": "64424c4a2a07f3c40ddf07bd0300e420521d1756a24f358afee50664cf315627",
+  "sourceHashesMatchCurrentCheckout": true,
+  "fixtureComplete": true,
+  "readyEnvironments": 2,
+  "gatewaySubstitutionDenials": [
+    "gateway-substitution-denied:1",
+    "gateway-substitution-denied:2"
+  ],
+  "independentDatabaseContainersAndVolumes": true,
+  "independentModelGateways": true,
+  "sourceCloneInventoriesEqual": true,
+  "databaseOwnershipValidated": true,
+  "copiedSqliteAndSupervisorManifestsMatchReports": true,
+  "session": "ses_df28eac2dffeXdue3ANIq7EPLB",
+  "executionOutcome": "candidate-ready",
+  "codingExits": [0],
+  "validationCommands": [[["node", "--test"]]],
+  "validationExits": [[0]],
+  "modelRequests": 6,
+  "grantedToolCalls": 5,
+  "nativeToolEvents": 5,
+  "modelDenial": null,
+  "codingSeconds": 22.158,
+  "independentCandidateReview": {
+    "accepted": true,
+    "testFilePreserved": true,
+    "fixtureTestsPassed": 1,
+    "validNumericRangeCasesPassed": 37191,
+    "review": "Only the intended pure clamp implementation changed beyond the pre-existing baseline. Named ESM export, correct below/above/inside behavior, no imports or external side effects.",
+    "implementation": "export const clamp = (value, min, max) => {\n  if (value < min) return min;\n  if (value > max) return max;\n  return value;\n};\n",
+    "baselinePatch": "diff --git a/fixture.txt b/fixture.txt\nindex d816c58..c5e1786 100644\n--- a/fixture.txt\n+++ b/fixture.txt\n@@ -1 +1 @@\n-synthetic source\n+task 1 only\n",
+    "candidatePatch": "diff --git a/clamp.mjs b/clamp.mjs\nindex 0934081..3dec017 100644\n--- a/clamp.mjs\n+++ b/clamp.mjs\n@@ -1 +1,5 @@\n-export const clamp = (value) => value;\n+export const clamp = (value, min, max) => {\n+  if (value < min) return min;\n+  if (value > max) return max;\n+  return value;\n+};\ndiff --git a/fixture.txt b/fixture.txt\nindex d816c58..c5e1786 100644\n--- a/fixture.txt\n+++ b/fixture.txt\n@@ -1 +1 @@\n-synthetic source\n+task 1 only\n"
+  },
+  "evidenceLimits": [
+    "Reviewed operator-provided export, not live host Docker attestation from the development container.",
+    "The real-model host candidate succeeded on its initial coding round; deterministic failure/repair and denied-operation cases are separately retained in the VM and local regression evidence.",
+    "Earlier VS Code editing/diff acceptance remains applicable to the unchanged independent Git layout.",
+    "Daemon restart recovery, production/Vela deployment, real private data and real external side effects are outside this acceptance.",
+    "Host synthetic resources remain retained; no automatic cleanup or GitHub write by the runner occurred."
+  ]
+}
