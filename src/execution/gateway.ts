@@ -11,6 +11,7 @@ export type DenialReason =
   | 'upstream-transport'
   | 'response-size'
   | 'response-protocol'
+  | 'generation-limit'
   | 'tool-budget';
 export interface ModelDenial {
   reason: DenialReason;
@@ -36,6 +37,8 @@ export function toolCalls(raw: string, contentType: string): number {
     };
     if (value.choices.length !== 1) throw new Error('Unexpected choices');
     const choice = value.choices[0]!;
+    if (choice.finish_reason === 'length')
+      throw new GatewayFailure('generation-limit');
     if (
       !['stop', 'tool_calls'].includes(choice.finish_reason) ||
       choice.message.function_call
@@ -108,6 +111,8 @@ export function toolCalls(raw: string, contentType: string): number {
         }
       }
       if (choice.finish_reason) {
+        if (choice.finish_reason === 'length')
+          throw new GatewayFailure('generation-limit');
         if (!['stop', 'tool_calls'].includes(choice.finish_reason))
           throw new Error('Incomplete generation');
         complete = true;
@@ -210,7 +215,8 @@ export class ExecutionGateway {
         let count: number;
         try {
           count = toolCalls(response.body.toString('utf8'), response.type);
-        } catch {
+        } catch (error) {
+          if (error instanceof GatewayFailure) throw error;
           throw new GatewayFailure('response-protocol');
         }
         if (this.denied) return deny(this.denial!.reason);

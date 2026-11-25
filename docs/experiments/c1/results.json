@@ -1,0 +1,25 @@
+{
+  "scope": "One disposable restricted Ubuntu guest with pinned OpenCode 1.19.5 and scripted model responses.",
+  "localChecks": {
+    "yarnCheckPassed": true,
+    "typescriptTestsPassed": 67,
+    "vmHarnessTestsPassed": 17
+  },
+  "guest": {
+    "complete": true,
+    "sourceSha256": "11a912f956620e1214e09afd565f2c92f153e984ca21a9affe65d0c5a884c88e",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "initialMissingCriterion": "A required inclusive-bounds source comment in clamp.mjs.",
+    "initialCandidateSha256": "f7e37e75c8e55bf17494314111f359a9c27771056d8a313b1bf50e9ccf92696f",
+    "correctedCandidateSha256": "1c76b5e1f477c2a34f354bc63e951d694524dd7f974c4743fea492076e55090a",
+    "independentFindingRecorded": true,
+    "correctedOutcome": "candidate-ready",
+    "validationExits": [0],
+    "secondReviewStatus": "pending",
+    "earlierAttemptAndReviewRetained": true,
+    "testFilePreserved": true,
+    "forbiddenUpstreamRequests": 0,
+    "vmStopped": true,
+    "diskRemoved": true
+  }
+}

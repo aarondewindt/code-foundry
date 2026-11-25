@@ -10,6 +10,12 @@ export interface Profile {
   maxRepairs: number;
   instructions?: string[];
   skills?: string[];
+  admission?: {
+    maxCpuLoadPerCore?: number;
+    minAvailableRamMiB?: number;
+    maxGpuPercent?: number;
+    minAvailableVramMiB?: number;
+  };
 }
 export interface Project {
   repository: string;
@@ -57,7 +63,26 @@ export function validateProfile(value: unknown): Profile {
     'maxRepairs',
     'instructions',
     'skills',
+    'admission',
   ]);
+  if (p.admission !== undefined) {
+    const admission = object(p.admission);
+    keys(admission, [
+      'maxCpuLoadPerCore',
+      'minAvailableRamMiB',
+      'maxGpuPercent',
+      'minAvailableVramMiB',
+    ]);
+    for (const [key, limit] of Object.entries(admission)) {
+      if (
+        typeof limit !== 'number' ||
+        !Number.isFinite(limit) ||
+        limit < 0 ||
+        (key === 'maxGpuPercent' && limit > 100)
+      )
+        throw new Error('Invalid resource admission limit');
+    }
+  }
   const result = {
     agent: name(p.agent),
     provider: name(p.provider),
@@ -65,6 +90,7 @@ export function validateProfile(value: unknown): Profile {
     runtimeSeconds: p.runtimeSeconds,
     maxToolCalls: p.maxToolCalls,
     maxRepairs: p.maxRepairs,
+    ...(p.admission === undefined ? {} : { admission: p.admission }),
     ...Object.fromEntries(
       ['instructions', 'skills']
         .filter((key) => p[key] !== undefined)

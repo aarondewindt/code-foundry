@@ -226,7 +226,8 @@ def run(args):
     directory = Path(tempfile.mkdtemp(prefix='integration-', dir=ROOT / 'scratch'))
     print(f'Integration reports: {directory}', flush=True)
     started = time.monotonic()
-    report = {'complete': False, 'mode': 'smoke' if args.smoke else 'environment',
+    review = getattr(args, 'review', False)
+    report = {'complete': False, 'mode': 'smoke' if args.smoke else 'review' if review else 'environment',
               'startedAt': datetime.now(timezone.utc).isoformat(),
               'scope': 'Disposable guest evidence, not Ubuntu host or Vela acceptance',
               'vmStopped': False, 'diskRemoved': False}
@@ -319,9 +320,10 @@ def run(args):
             with payload.open('rb') as source:
                 guest.command('mkdir /home/cf/code-foundry && tar xzf - -C /home/cf/code-foundry', input_file=source, seconds=180)
             payload.unlink()
-            print('Preparing two real restricted synthetic environments', flush=True)
+            print('Running restricted synthetic review workflow' if review else 'Preparing two real restricted synthetic environments', flush=True)
             checkpoint('environment')
-            guest.command('cd /home/cf/code-foundry && PATH=/opt/node/bin:/usr/bin:/bin timeout --kill-after=5s 900s node --import tsx test/integration/environment.ts', seconds=910)
+            mode = '1' if review else '0'
+            guest.command(f'cd /home/cf/code-foundry && CF_REVIEW_FIXTURE={mode} PATH=/opt/node/bin:/usr/bin:/bin timeout --kill-after=5s 1200s node --import tsx test/integration/environment.ts', seconds=1210)
             with (directory / 'environment.json').open('wb') as output:
                 guest.command('cat /home/cf/environment-report.json', output_file=output)
             environment = json.loads((directory / 'environment.json').read_text())
@@ -340,7 +342,7 @@ def run(args):
         if guest is not None and process is not None and process.poll() is None:
             # Best effort, only known JSON reports; never credentials, sockets or DB dumps.
             try:
-                for local, remote in [('environment.json', 'environment-report.json'), ('smoke.json', 'smoke.json')]:
+                for local, remote in [('environment.json', 'environment-report.json'), ('smoke.json', 'smoke.json'), ('execution.json', 'execution-report.json')]:
                     if (directory / local).exists() and (directory / local).stat().st_size:
                         continue
                     with (directory / local).open('wb') as output:
@@ -377,11 +379,15 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--smoke', action='store_true', help='No approved image archive or real model needed')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--smoke', action='store_true', help='No approved image archive or real model needed')
+    mode.add_argument('--review', action='store_true', help='Verify independent review and correction in one restricted synthetic environment')
     parser.add_argument('--images', default=os.environ.get('CF_INTEGRATION_IMAGES'), help='Absolute Docker save archive containing both existing approved image IDs')
     parser.add_argument('--keep-artifacts', action='store_true', help='Keep stopped disposable guest disk for diagnosis')
-    parser.add_argument('--timeout', type=int, default=1800, help='Guest lifetime in seconds (60..3600), independently enforced by timeout')
+    parser.add_argument('--timeout', type=int, help='Guest lifetime in seconds (60..3600), independently enforced by timeout')
     args = parser.parse_args()
+    if args.timeout is None:
+        args.timeout = 1800 if args.smoke else 2400
     if not 60 <= args.timeout <= 3600:
         parser.error('--timeout must be between 60 and 3600 seconds')
     os.umask(0o077)

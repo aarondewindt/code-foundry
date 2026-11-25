@@ -1,0 +1,37 @@
+{
+  "scope": "Disposable synthetic project. The pinned OpenCode binary ran in a restricted Ubuntu guest with scripted model responses.",
+  "localChecks": {
+    "yarnCheckPassed": true,
+    "typescriptTestsPassed": 61,
+    "vmHarnessTestsPassed": 17,
+    "supervisorDeathAndDatabaseReopenSimulated": true,
+    "takeoverWaitedForWorkerTermination": true,
+    "sameSessionAndFreshSessionRecoveryVerified": true,
+    "independentApprovedTaskRanAfterBlockAndDeferral": true
+  },
+  "nativeProtocol": {
+    "openCodeVersion": "1.19.5",
+    "continuedAcrossProcesses": true
+  },
+  "firstGuestRun": {
+    "sourceSha256": "e437b9acb0ed326c70c72497a8e9f9909084eb991c3786f8810851e497ed0e3f",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "implementationSha256": "c71fd6e5fed1231feea1c97407759d03a10a8a91f1e9f65aff2e425169ec2f0e",
+    "outcome": "candidate-ready",
+    "takeoverStoppedWorkers": true,
+    "resumedNativeSessionAfterManualEdit": true,
+    "validationExits": [[1], [0]],
+    "testFilePreserved": true,
+    "fullSuite": "Timed out at the 900-second guest test limit after capturing the completed takeover and resume scenario.",
+    "vmStopped": true,
+    "diskRemoved": true
+  },
+  "secondGuestRun": {
+    "sourceSha256": "5e45731d6bd9ec12e7528b96078d387b959e63c58ea7f2fafe30a62266ebc1ca",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "takeoverAndResumeAssertionsCompleted": true,
+    "fullSuite": "Preparation of the second B2 environment failed at worker-readiness. The fixture report does not identify the underlying readiness check.",
+    "vmStopped": true,
+    "diskRemoved": true
+  }
+}

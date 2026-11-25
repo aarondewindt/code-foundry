@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import threading
+from tempfile import TemporaryDirectory
 
 settings = json.loads(base64.b64decode(sys.argv[1]))
 root = Path(settings['root'])
@@ -21,6 +22,35 @@ environment = {'PATH': os.environ['PATH'], 'HOME': str(root / 'home'), 'LC_ALL':
 client = json.loads((root / 'database.json').read_text())
 environment.update({'PGHOST': '/gateways/db', 'PGPORT': '6432', 'PGUSER': client['user'],
                     'PGPASSWORD': client['password'], 'PGDATABASE': client['database'], 'PGCONNECT_TIMEOUT': '3'})
+if settings['mode'] == 'review-snapshot':
+    base = settings['base']
+    git = ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false',
+           '-c', 'core.quotePath=true', '-c', 'color.ui=false']
+
+    def inspect_git(*args):
+        return subprocess.check_output([*git, *args], cwd=worktree, env=environment)
+
+    objects = (worktree / inspect_git('rev-parse', '--git-path', 'objects').decode().strip()).resolve()
+    with TemporaryDirectory() as temporary:
+        scratch = Path(temporary)
+        (scratch / 'objects').mkdir()
+        environment.update({'GIT_INDEX_FILE': str(scratch / 'index'),
+                            'GIT_OBJECT_DIRECTORY': str(scratch / 'objects'),
+                            'GIT_ALTERNATE_OBJECT_DIRECTORIES': str(objects)})
+        inspect_git('read-tree', 'HEAD')
+        inspect_git('add', '--all', '--', '.')
+        diff = ('diff', '--cached', '--no-ext-diff', '--no-textconv', '--no-renames')
+        patch = inspect_git(*diff, '--binary', '--full-index', base, '--')
+        names = inspect_git(*diff, '--name-only', '-z', base, '--').split(b'\0')
+        commits = inspect_git('log', '--format=%H%x09%s', f'{base}..HEAD', '--').decode('utf-8', 'replace')
+        try:
+            change = {'patch': patch.decode('utf-8')}
+        except UnicodeDecodeError:
+            change = {'patchBase64': base64.b64encode(patch).decode('ascii')}
+        print(json.dumps({**change, 'changedFiles': [name.decode('utf-8', 'backslashreplace') for name in names if name],
+                          'localCommits': commits.splitlines()}, ensure_ascii=True, sort_keys=True))
+    sys.exit(0)
+
 if settings['mode'] in ['validation', 'evidence']:
     try:
         result = subprocess.run(settings['command'], cwd=worktree, env=environment)

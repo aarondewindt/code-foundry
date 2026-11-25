@@ -1,9 +1,11 @@
+import { verifyReviewCorrection } from './review.js';
 /** Disposable VM only: real OpenCode with scripted responses, no host model. */
 import { strict as assert } from 'node:assert';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runEnvironmentFixture } from '../environment-fixture.js';
+import { ExecutionRuntime } from '../../src/execution/runtime.js';
 import { reviewedImages } from '../../src/environment/runtime.js';
 import {
   ExecutionController,
@@ -16,6 +18,7 @@ assert.equal(
   'code-foundry-disposable-v1',
 );
 assert.equal(process.cwd(), '/home/cf/code-foundry');
+const reviewFixture = process.env.CF_REVIEW_FIXTURE === '1';
 for (const image of Object.values(reviewedImages)) {
   const result = spawnSync(
     'docker',
@@ -72,14 +75,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
   if self.path == '/v1/chat/completions':
    value=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
    messages=value['messages']
-   last_user=max(i for i,m in enumerate(messages) if m['role']=='user' and ('Implement only the approved ticket' in json.dumps(m) or 'Repair only the recoverable' in json.dumps(m)))
+   last_user=max(i for i,m in enumerate(messages) if m['role']=='user' and any(marker in json.dumps(m) for marker in ('Implement only the approved ticket','Repair only the recoverable','Apply only the explicitly authorized local code corrections')))
+   correction='Apply only the explicitly authorized local code corrections' in json.dumps(messages[last_user])
+   review_fixture=${reviewFixture ? 'True' : 'False'}
    repair='Repair only the recoverable' in json.dumps(messages[last_user])
    completed=any(m['role']=='tool' for m in messages[last_user+1:])
-   implementation='export const clamp = (value,min,max) => Math.min(max,Math.max(min,value));' if repair else 'export const clamp = (value) => value;'
+   implementation='export const clamp = (value,min,max) => Math.min(max,Math.max(min,value));' if repair or review_fixture else 'export const clamp = (value) => value;'
+   if correction:
+    implementation='// inclusive bounds\\n'+implementation
    command='python3 -c '+__import__('shlex').quote('from pathlib import Path; Path("clamp.mjs").write_text('+repr(implementation)+')')
    # Exercise an actual denied operation within the same real shell tool.
    command += ' && python3 -c '+__import__('shlex').quote('from pathlib import Path\\ntry: Path("/shared/attachment.txt").write_text("forbidden")\\nexcept PermissionError: print("boundary-denied")\\nexcept OSError: print("boundary-denied")\\nelse: raise RuntimeError("boundary failed")')
-   message={'role':'assistant','content':'CF_RESULT: candidate'} if completed else {'role':'assistant','content':None,'tool_calls':[{'id':'call_fixture_repair' if repair else 'call_fixture_initial','type':'function','function':{'name':'bash','arguments':json.dumps({'command':command,'description':'Implement synthetic fixture and verify boundary'})}}]}
+   summary='Applied the approved bounds comment without changing behavior.' if correction else 'Implemented the synthetic clamp for inclusive numeric bounds.'
+   message={'role':'assistant','content':summary+' CF_RESULT: candidate'} if completed else {'role':'assistant','content':None,'tool_calls':[{'id':'call_fixture_repair' if repair else 'call_fixture_initial','type':'function','function':{'name':'bash','arguments':json.dumps({'command':command,'description':'Implement synthetic fixture and verify boundary'})}}]}
    reason='stop' if completed else 'tool_calls'
    if value.get('stream'):
     delta=dict(message)
@@ -118,6 +126,7 @@ try {
     retainGateways: false,
     verifyFailures: true,
     executionFixture: true,
+    reviewFixture,
     onReady: async (store, manager, environment, issue) => {
       try {
         const importMarker = `${environment.worktree}/untrusted-control-import`;
@@ -128,10 +137,60 @@ try {
         );
         manager.check(environment);
         assert.equal(existsSync(importMarker), false);
+        if (reviewFixture) {
+          await verifyReviewCorrection(store, manager, environment, issue);
+          assert.equal(existsSync(importMarker), false);
+          return;
+        }
+        class TakeoverRuntime extends ExecutionRuntime {
+          override async run(...args: Parameters<ExecutionRuntime['run']>) {
+            if (args[3].mode === 'coding') {
+              const onLine = args[7];
+              let requested = false;
+              args[7] = (line) => {
+                onLine?.(line);
+                const event = JSON.parse(line) as { type: string };
+                if (event.type === 'tool_use' && !requested) {
+                  store.requestExecutionControl(environment.taskId, 'takeover');
+                  requested = true;
+                }
+              };
+            }
+            return super.run(...args);
+          }
+        }
+        const paused = (await new ExecutionController(
+          store,
+          manager,
+          new TakeoverRuntime(manager.runtime),
+        ).execute(environment.taskId, issue)) as { execution: ExecutionRecord };
+        assert.equal(store.get(environment.taskId).status, 'paused');
+        assert.equal(paused.execution.controlAction, 'takeover');
+        assert.ok(paused.execution.session);
+        for (const id of paused.execution.containers)
+          assert.equal(
+            manager.runtime.execute('docker', [
+              'inspect',
+              '--format',
+              '{{.State.Running}}',
+              id,
+            ]),
+            'false',
+          );
+        const manualFile = `${environment.worktree}/manual-takeover.txt`;
+        writeFileSync(manualFile, 'manual fixture edit\n', { flag: 'wx' });
         const result = (await new ExecutionController(store, manager).execute(
           environment.taskId,
           issue,
+          true,
         )) as { execution: ExecutionRecord };
+        assert.equal(result.execution.session, paused.execution.session);
+        assert.equal(result.execution.resumedFrom, paused.execution.attemptId);
+        assert.equal(readFileSync(manualFile, 'utf8'), 'manual fixture edit\n');
+        assert.match(
+          readFileSync(result.execution.handoff!, 'utf8'),
+          /manual-takeover\.txt/,
+        );
         assert.equal(store.get(environment.taskId).status, 'candidate-ready');
         assert.equal(result.execution.rounds.length, 2);
         assert.equal(result.execution.rounds[0]!.validation[0]!.result.exit, 1);
@@ -165,6 +224,8 @@ try {
             {
               ...result.execution,
               testFilePreserved: true,
+              takeoverStoppedWorkers: true,
+              resumedNativeSessionAfterManualEdit: true,
               taskControlledStartupModuleIgnored: true,
               implementation: readFileSync(
                 `${environment.worktree}/clamp.mjs`,

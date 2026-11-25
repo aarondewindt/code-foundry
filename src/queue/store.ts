@@ -1,3 +1,4 @@
+import type { Correction, Review, ReviewInput } from '../review/findings.js';
 import { randomUUID } from 'node:crypto';
 import { chmodSync, lstatSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -31,6 +32,7 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
 }
+export type ExecutionAction = 'pause' | 'takeover' | 'force-stop';
 export interface Claim {
   attemptId: string;
   token: string;
@@ -54,8 +56,9 @@ const transitions: Record<Status, Status[]> = {
 };
 export class QueueStore {
   readonly #db: DatabaseSync;
+  readonly path: string;
   constructor(path: string) {
-    const absolute = resolve(path);
+    const absolute = (this.path = resolve(path));
     mkdirSync(dirname(absolute), { recursive: true, mode: 0o700 });
     for (const file of [absolute, `${absolute}-wal`, `${absolute}-shm`]) {
       const metadata = lstatSync(file, { throwIfNoEntry: false });
@@ -97,7 +100,13 @@ export class QueueStore {
             );
             PRAGMA user_version=1;
           `);
-        } else if (version !== 1 && version !== 2 && version !== 3)
+        } else if (
+          version !== 1 &&
+          version !== 2 &&
+          version !== 3 &&
+          version !== 4 &&
+          version !== 5
+        )
           throw new Error('Unsupported state schema version');
         this.#db.exec(`
           CREATE TABLE IF NOT EXISTS environments (
@@ -111,7 +120,17 @@ export class QueueStore {
             finished_at TEXT, payload TEXT NOT NULL
           );
           CREATE UNIQUE INDEX IF NOT EXISTS one_live_execution ON executions ((1)) WHERE finished_at IS NULL;
-          PRAGMA user_version=3;
+          CREATE TABLE IF NOT EXISTS execution_controls (
+            attempt_id TEXT PRIMARY KEY REFERENCES executions(attempt_id),
+            action TEXT NOT NULL CHECK(action IN ('pause','takeover','force-stop'))
+          );
+          CREATE TABLE IF NOT EXISTS reviews (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL REFERENCES tasks(id),
+            attempt_id TEXT NOT NULL UNIQUE REFERENCES executions(attempt_id),
+            payload TEXT NOT NULL
+          );
+          PRAGMA user_version=5;
         `);
       });
     } catch (error) {
@@ -260,10 +279,41 @@ export class QueueStore {
   claim(
     id: string,
     fresh: IssueSnapshot,
+    reserve?: (claim: Claim) => unknown,
+    retry = false,
+    correction?: Correction,
   ): Claim | { task: Task; blocked: true } {
     return this.#transaction(() => {
       const task = this.get(id);
-      if (!['queued', 'blocked'].includes(task.status))
+      if (correction) {
+        const review = this.reviews(id).find(
+          ({ id }) => id === correction.review.id,
+        );
+        const latest = this.latestExecution(id) as {
+          attemptId: string;
+          reviewSha256?: string;
+        } | null;
+        if (
+          !review ||
+          review.decision !== 'changes-requested' ||
+          review.findings.some(({ kind }) => kind !== 'code') ||
+          latest?.attemptId !== review.attemptId ||
+          latest.reviewSha256 !== review.candidateSha256 ||
+          JSON.stringify(review) !== JSON.stringify(correction.review) ||
+          !correction.approvedBy.trim() ||
+          correction.approvedBy.length > 500 ||
+          !reserve
+        )
+          throw new Error(
+            'Correction requires current code findings and explicit local approval',
+          );
+      }
+      const allowed = correction
+        ? ['candidate-ready']
+        : retry
+          ? ['paused', 'failed', 'needs-local-repair', 'blocked']
+          : ['queued', 'blocked'];
+      if (!allowed.includes(task.status))
         throw new Error('Task is not claimable');
       if (this.#db.prepare("SELECT id FROM tasks WHERE status='running'").get())
         throw new Error(
@@ -287,7 +337,7 @@ export class QueueStore {
           : blockedReason(fresh);
       if (reason) {
         Object.assign(task, {
-          status: 'blocked',
+          status: retry || correction ? task.status : 'blocked',
           reason,
           updatedAt: new Date().toISOString(),
         });
@@ -304,6 +354,7 @@ export class QueueStore {
         profile: task.profile,
         approvalSource: task.approvalSource,
         approvedAt: task.approvedAt,
+        ...(correction ? { correction } : {}),
       };
       this.#db
         .prepare(
@@ -313,7 +364,17 @@ export class QueueStore {
       Object.assign(task, { status: 'running', reason: null, updatedAt: now });
       this.#save(task);
       this.#event(id, 'claimed', { attemptId, snapshot });
-      return { attemptId, token, task };
+      const claim = { attemptId, token, task };
+      if (reserve) {
+        const payload = reserve(claim);
+        this.#db
+          .prepare(
+            'INSERT INTO executions(attempt_id,task_id,payload) VALUES(?,?,?)',
+          )
+          .run(attemptId, id, JSON.stringify(payload));
+        this.#event(id, 'execution', payload);
+      }
+      return claim;
     });
   }
   environment(id: string): Environment | null {
@@ -389,28 +450,117 @@ export class QueueStore {
       .get(attemptId);
     return row ? (JSON.parse(String(row.payload)) as unknown) : null;
   }
+  activeExecution(
+    id: string,
+  ): { attemptId: string; token: string; payload: unknown } | null {
+    const row = this.#db
+      .prepare(
+        'SELECT attempts.id,token,payload FROM executions JOIN attempts ON attempts.id=executions.attempt_id WHERE executions.task_id=? AND executions.finished_at IS NULL',
+      )
+      .get(id);
+    return row
+      ? {
+          attemptId: String(row.id),
+          token: String(row.token),
+          payload: JSON.parse(String(row.payload)) as unknown,
+        }
+      : null;
+  }
+  latestExecution(id: string): unknown {
+    const row = this.#db
+      .prepare(
+        'SELECT payload FROM executions WHERE task_id=? ORDER BY rowid DESC LIMIT 1',
+      )
+      .get(id);
+    return row ? (JSON.parse(String(row.payload)) as unknown) : null;
+  }
+  reviews(id: string): Review[] {
+    this.get(id);
+    return this.#db
+      .prepare('SELECT payload FROM reviews WHERE task_id=? ORDER BY rowid')
+      .all(id)
+      .map((row) => JSON.parse(String(row.payload)) as Review);
+  }
+  recordReview(id: string, input: ReviewInput): Review {
+    return this.#transaction(() => {
+      const task = this.get(id);
+      const latest = this.latestExecution(id) as {
+        attemptId: string;
+        reviewSha256?: string;
+      } | null;
+      if (
+        task.status !== 'candidate-ready' ||
+        latest?.attemptId !== input.attemptId ||
+        latest.reviewSha256 !== input.candidateSha256
+      )
+        throw new Error(
+          'Review must match the current candidate and its digest',
+        );
+      if (
+        this.reviews(id).some(({ attemptId }) => attemptId === input.attemptId)
+      )
+        throw new Error(
+          'An independent decision already exists for this candidate',
+        );
+      const review = {
+        ...input,
+        id: randomUUID(),
+        recordedAt: new Date().toISOString(),
+      };
+      this.#db
+        .prepare(
+          'INSERT INTO reviews(id,task_id,attempt_id,payload) VALUES(?,?,?,?)',
+        )
+        .run(review.id, id, input.attemptId, JSON.stringify(review));
+      this.#event(id, 'review-recorded', review);
+      return review;
+    });
+  }
+  executions(id: string): unknown[] {
+    this.get(id);
+    return this.#db
+      .prepare('SELECT payload FROM executions WHERE task_id=? ORDER BY rowid')
+      .all(id)
+      .map((row) => JSON.parse(String(row.payload)) as unknown);
+  }
+  requestExecutionControl(id: string, action: ExecutionAction): string {
+    return this.#transaction(() => {
+      const active = this.activeExecution(id);
+      if (!active) throw new Error('No active execution');
+      this.#db
+        .prepare(
+          `
+        INSERT INTO execution_controls(attempt_id,action) VALUES(?,?)
+        ON CONFLICT(attempt_id) DO UPDATE SET action=excluded.action
+        WHERE execution_controls.action != 'force-stop'
+      `,
+        )
+        .run(active.attemptId, action);
+      this.#event(id, 'execution-control-requested', {
+        attemptId: active.attemptId,
+        action,
+      });
+      return active.attemptId;
+    });
+  }
+  executionControl(attemptId: string): ExecutionAction | undefined {
+    return this.#db
+      .prepare('SELECT action FROM execution_controls WHERE attempt_id=?')
+      .get(attemptId)?.action as ExecutionAction | undefined;
+  }
   saveExecution(
     id: string,
     ownership: { attemptId: string; token: string },
     payload: unknown,
-    reserve = false,
   ): void {
     this.#transaction(() => {
       this.#assertOwner(id, ownership.attemptId, ownership.token);
-      if (reserve)
-        this.#db
-          .prepare(
-            'INSERT INTO executions(attempt_id,task_id,payload) VALUES(?,?,?)',
-          )
-          .run(ownership.attemptId, id, JSON.stringify(payload));
-      else {
-        const result = this.#db
-          .prepare(
-            'UPDATE executions SET payload=? WHERE attempt_id=? AND finished_at IS NULL',
-          )
-          .run(JSON.stringify(payload), ownership.attemptId);
-        if (result.changes !== 1) throw new Error('Execution is not active');
-      }
+      const result = this.#db
+        .prepare(
+          'UPDATE executions SET payload=? WHERE attempt_id=? AND finished_at IS NULL',
+        )
+        .run(JSON.stringify(payload), ownership.attemptId);
+      if (result.changes !== 1) throw new Error('Execution is not active');
       this.#event(id, 'execution', payload);
     });
   }
@@ -429,9 +579,19 @@ export class QueueStore {
           'blocked',
           'failed',
           'needs-local-repair',
+          'paused',
         ].includes(target)
       )
         throw new Error('Invalid execution outcome');
+      const action = this.executionControl(ownership.attemptId);
+      if (action) {
+        target = 'paused';
+        reason = `Verified stopped for ${action}`;
+        Object.assign(payload as object, {
+          outcome: target,
+          controlAction: action,
+        });
+      }
       const now = new Date().toISOString();
       const result = this.#db
         .prepare(

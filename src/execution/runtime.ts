@@ -3,10 +3,76 @@ import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { DockerRuntime } from '../environment/runtime.js';
 import type { Environment } from '../environment/types.js';
+import type { ExecutionAction } from '../queue/store.js';
 import { capture, type ProcessResult } from './process.js';
 
 export class ExecutionRuntime {
   constructor(readonly docker = new DockerRuntime()) {}
+  reconcile(
+    environment: Environment,
+    attemptId: string,
+    containers: string[],
+    force: boolean,
+    expectedDaemon?: string,
+    bindDaemon?: (daemon: string) => void,
+  ): string[] {
+    if (!/^[0-9a-f-]{36}$/.test(attemptId))
+      throw new Error('Invalid execution attempt identity');
+    const daemon = this.daemonIdentity();
+    if (expectedDaemon && expectedDaemon !== daemon)
+      throw new Error('Execution Docker daemon identity changed');
+    const listed = this.docker.execute('docker', [
+      'ps',
+      '-a',
+      '--no-trunc',
+      '--filter',
+      `label=code-foundry.owner=${environment.owner}`,
+      '--format',
+      '{{.ID}} {{.Names}}',
+    ]);
+    const names = new RegExp(
+      `^cf-(?:before|diff)-${attemptId}(?:-status)?$|^cf-review-(?:snapshot|baseline)-${attemptId}$|^cf-(?:code|test)-${attemptId}-[0-9]+(?:-[0-9]+)?$`,
+    );
+    const found = new Set<string>();
+    for (const line of listed.split('\n').filter(Boolean)) {
+      const [id, name] = line.split(' ');
+      if (!id || !name || !/^[a-f0-9]{64}$/.test(id))
+        throw new Error('Invalid Docker inventory');
+      if (!names.test(name)) {
+        if (containers.includes(id))
+          throw new Error('Execution container ownership mismatch');
+        continue;
+      }
+      found.add(id);
+    }
+    if (!expectedDaemon && containers.some((id) => !found.has(id)))
+      throw new Error('Cannot establish daemon ownership for legacy execution');
+    bindDaemon?.(daemon);
+    for (const id of found) {
+      this.docker.execute('docker', ['stop', '--time', force ? '0' : '2', id]);
+      this.docker.execute('docker', ['rm', id]);
+    }
+    // Inspect the full inventory to reject a recorded ID with a changed label.
+    const remaining = this.docker
+      .execute('docker', ['ps', '-a', '--no-trunc', '--format', '{{.ID}}'])
+      .split('\n');
+    if (
+      this.daemonIdentity() !== daemon ||
+      [...containers, ...found].some((id) => remaining.includes(id))
+    )
+      throw new Error('Execution termination could not be verified');
+    return [...found];
+  }
+  private daemonIdentity(): string {
+    const daemon = this.docker.execute('docker', [
+      'info',
+      '--format',
+      '{{.ID}}',
+    ]);
+    if (!daemon || daemon === '<no value>')
+      throw new Error('Missing Docker daemon identity');
+    return daemon;
+  }
   async run(
     environment: Environment,
     control: string,
@@ -14,9 +80,21 @@ export class ExecutionRuntime {
     settings: Record<string, unknown>,
     prefix: string,
     deadline: number,
-    reserved: (id: string) => void,
+    reserved: (id: string, daemon?: string) => void,
     onLine?: (line: string) => void,
+    action?: () => ExecutionAction | undefined,
   ): Promise<ProcessResult> {
+    if (action?.()) {
+      const now = new Date().toISOString();
+      return {
+        exit: null,
+        signal: null,
+        limited: true,
+        limitReason: 'control',
+        startedAt: now,
+        finishedAt: now,
+      };
+    }
     if (Date.now() >= deadline)
       throw new Error('Execution deadline exhausted before create');
     const id = this.docker.execute('docker', [
@@ -83,7 +161,7 @@ export class ExecutionRuntime {
     ]);
     if (!/^[a-f0-9]{64}$/.test(id))
       throw new Error('Invalid execution container identity');
-    reserved(id); // Before start: a crash never makes this a replayable launch.
+    reserved(id, this.daemonIdentity()); // Before start: a crash never makes this a replayable launch.
     this.docker.verifyContainer(environment, id, 'worker', control, 'created');
     // Independent supervisor-side deadline survives controller loss. The worker
     // cannot signal it or access its Docker authority. Never select by a prefix.
@@ -132,6 +210,7 @@ subprocess.run(['docker','stop','--time','2',sys.argv[1]],timeout=15,check=True,
         prefix,
         deadline,
         onLine,
+        action && (() => action() !== undefined),
       );
       this.docker.verifyContainer(environment, id, 'worker', control);
       const wasRunning =
@@ -149,7 +228,12 @@ subprocess.run(['docker','stop','--time','2',sys.argv[1]],timeout=15,check=True,
           id,
         ]),
       );
-      this.docker.execute('docker', ['stop', '--time', '2', id]);
+      this.docker.execute('docker', [
+        'stop',
+        '--time',
+        action?.() === 'force-stop' ? '0' : '2',
+        id,
+      ]);
       if (
         this.docker.execute('docker', [
           'inspect',

@@ -1,5 +1,13 @@
+import { reviewPackage } from '../review/package.js';
+import { parseReview } from '../review/findings.js';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { EnvironmentManager } from '../environment/manager.js';
-import { ExecutionController } from '../execution/controller.js';
+import { ExecutionLockUnavailable } from '../execution/lock.js';
+import { resourcePressure } from '../execution/resources.js';
+import {
+  ExecutionController,
+  type ExecutionRecord,
+} from '../execution/controller.js';
 import { readEnvironmentConfig } from '../environment/system.js';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -15,6 +23,17 @@ export const queueUsage = `Queue commands (JSON output):
     [--profile <name>] [--model <model>] [--runtime-seconds <seconds>]
   prepare <id> --environment-config <file>
   execute <id>                  Run one approved task in its ready B2 environment
+  execute-next                 Run the next ready approved task
+  pause <id>                    Request a bounded graceful stop
+  takeover <id>                 Request a stop before manual editing
+  force-stop <id>               Request immediate termination
+  reconcile <id> [--legacy-supervisor-exited] Fence an interrupted attempt
+  resume <id> [--fresh-session] Start a new attempt with retained evidence
+  review-package <id> --output <file> [--pr <number>]
+  record-review <id> --file <findings.json>
+  correct <id> --review <review-id> --approved-by <source>
+  pressure                      Show current supervisor resource pressure
+  logs <attempt-id>             List private stdout and stderr artifact paths
   execution <attempt-id>        Inspect durable execution evidence
   environment <id>
   environment-owner <id>       Supervisor-only recovery token
@@ -37,6 +56,12 @@ export async function queueCommand(args: string[]): Promise<unknown> {
     allowPositionals: true,
     options: {
       db: { type: 'string' },
+      output: { type: 'string' },
+      file: { type: 'string' },
+      review: { type: 'string' },
+      pr: { type: 'string' },
+      'fresh-session': { type: 'boolean' },
+      'legacy-supervisor-exited': { type: 'boolean' },
       config: { type: 'string' },
       'approved-by': { type: 'string' },
       profile: { type: 'string' },
@@ -53,7 +78,18 @@ export async function queueCommand(args: string[]): Promise<unknown> {
     enqueue: ['config', 'approved-by', 'profile', 'model', 'runtime-seconds'],
     prepare: ['environment-config'],
     execute: [],
+    'execute-next': [],
+    pause: [],
+    takeover: [],
+    'force-stop': [],
+    reconcile: ['legacy-supervisor-exited'],
+    'review-package': ['output', 'pr'],
+    'record-review': ['file'],
+    correct: ['review', 'approved-by'],
+    resume: ['fresh-session'],
+    pressure: [],
     execution: [],
+    logs: [],
     environment: [],
     'environment-owner': [],
     readiness: [],
@@ -66,7 +102,11 @@ export async function queueCommand(args: string[]): Promise<unknown> {
   };
   if (!command || !Object.hasOwn(allowed, command))
     throw new Error('Unknown arguments. Use --help for usage.');
-  const count = command === 'queue' ? 1 : command === 'transition' ? 3 : 2;
+  const count = ['queue', 'execute-next', 'pressure'].includes(command)
+    ? 1
+    : command === 'transition'
+      ? 3
+      : 2;
   if (
     positionals.length !== count ||
     Object.keys(values).some(
@@ -107,13 +147,89 @@ export async function queueCommand(args: string[]): Promise<unknown> {
   const store = new QueueStore(db);
   try {
     const manager = new EnvironmentManager(store, db);
+    const controller = new ExecutionController(store, manager);
     switch (command) {
-      case 'execute': {
+      case 'review-package':
+        if (!values.output) throw new Error('review-package requires --output');
+        return reviewPackage(
+          store,
+          subject!,
+          resolve(values.output),
+          values.pr,
+        );
+      case 'record-review': {
+        if (!values.file) throw new Error('record-review requires --file');
+        const metadata = statSync(values.file);
+        if (!metadata.isFile() || metadata.size > 64000)
+          throw new Error('Expected a bounded review JSON file');
+        return store.recordReview(
+          subject!,
+          parseReview(JSON.parse(readFileSync(values.file, 'utf8')) as unknown),
+        );
+      }
+      case 'correct': {
+        if (
+          !values.review ||
+          !values['approved-by']?.trim() ||
+          values['approved-by'].length > 500
+        )
+          throw new Error(
+            'correct requires --review and an explicit --approved-by source',
+          );
         const task = store.get(subject!);
-        return await new ExecutionController(store, manager).execute(
+        return await controller.correct(
           task.id,
           fetchIssue({ repository: task.repository, number: task.number }),
+          values.review,
+          values['approved-by'],
         );
+      }
+      case 'pressure':
+        return resourcePressure();
+      case 'reconcile':
+        return controller.reconcile(
+          subject!,
+          values['legacy-supervisor-exited']
+            ? { legacySupervisorExited: true }
+            : undefined,
+        );
+
+      case 'pause':
+      case 'takeover':
+      case 'force-stop': {
+        const attemptId = store.requestExecutionControl(subject!, command);
+        try {
+          return controller.reconcile(subject!, { expectedAttempt: attemptId });
+        } catch (error) {
+          if (!(error instanceof ExecutionLockUnavailable)) throw error;
+          return { attemptId, action: command, status: 'stop-requested' };
+        }
+      }
+      case 'execute-next':
+        return await controller.executeNext((task) =>
+          fetchIssue({ repository: task.repository, number: task.number }),
+        );
+      case 'resume':
+      case 'execute': {
+        const task = store.get(subject!);
+        return await controller.execute(
+          task.id,
+          fetchIssue({ repository: task.repository, number: task.number }),
+          command === 'resume',
+          values['fresh-session'],
+        );
+      }
+      case 'logs': {
+        const execution = store.execution(subject!) as ExecutionRecord | null;
+        if (!execution) throw new Error('Unknown execution attempt');
+        return existsSync(execution.artifacts)
+          ? readdirSync(execution.artifacts, { withFileTypes: true })
+              .filter(
+                (file) => file.isFile() && /\.(stdout|stderr)$/.test(file.name),
+              )
+              .map((file) => join(execution.artifacts, file.name))
+              .sort()
+          : [];
       }
       case 'execution':
         return store.execution(subject!);
@@ -169,6 +285,8 @@ export async function queueCommand(args: string[]): Promise<unknown> {
         return {
           task: store.get(subject!),
           attempts: store.attempts(subject!),
+          reviews: store.reviews(subject!),
+          execution: store.latestExecution(subject!),
           environment: store.environment(subject!),
         };
       case 'events':
