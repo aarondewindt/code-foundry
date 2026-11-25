@@ -1,3 +1,6 @@
+import { queueCommand } from '../src/queue/cli.js';
+import { reviewPackage } from '../src/review/package.js';
+import { parseReview } from '../src/review/findings.js';
 import {
   mkdtempSync,
   mkdirSync,
@@ -8,6 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer, request, type Server } from 'node:http';
+import { once } from 'node:events';
 import { afterEach, expect, it } from 'vitest';
 import {
   ExecutionController,
@@ -25,7 +29,7 @@ import type { IssueSnapshot } from '../src/queue/github.js';
 import { QueueStore } from '../src/queue/store.js';
 import { validateProfile } from '../src/queue/config.js';
 import { DatabaseSync } from 'node:sqlite';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const roots: string[] = [];
 const stores: QueueStore[] = [];
@@ -148,6 +152,8 @@ class Runtime extends ExecutionRuntime {
   diagnostics: string[] = [];
   validationExit = 1;
   denyModelDuringValidation = false;
+  snapshotPatch = '+ export const clamp = (value) => value;';
+
   override async run(
     ...args: Parameters<ExecutionRuntime['run']>
   ): Promise<ProcessResult> {
@@ -158,12 +164,19 @@ class Runtime extends ExecutionRuntime {
     if (this.stopUncertain) throw new Error('Termination unverified');
     writeFileSync(
       `${prefix}.stdout`,
-      settings.mode === 'validation'
-        ? (this.diagnostics.shift() ?? this.diagnostic)
-        : this.diagnostic,
+      settings.mode === 'review-snapshot'
+        ? JSON.stringify({
+            patch: this.snapshotPatch,
+            changedFiles: ['clamp.mjs'],
+            localCommits: [],
+          })
+        : settings.mode === 'validation'
+          ? (this.diagnostics.shift() ?? this.diagnostic)
+          : this.diagnostic,
     );
     writeFileSync(`${prefix}.stderr`, '');
-    if (settings.mode === 'evidence') return successful;
+    if (settings.mode === 'evidence' || settings.mode === 'review-snapshot')
+      return successful;
     if (settings.mode === 'validation' && this.denyModelDuringValidation)
       await post(join(args[0].config.modelGateway, 'ollama.sock'));
     if (settings.mode === 'coding') {
@@ -192,6 +205,158 @@ class Runtime extends ExecutionRuntime {
     };
   }
 }
+it('exports a review, runs only authorized corrections, and requires a new decision', async () => {
+  const { store, manager, task, path } = fixture();
+  const runtime = new Runtime();
+  runtime.summaryPrefix = 'Kept the existing exports. ';
+  const controller = new ExecutionController(store, manager, runtime);
+  await controller.execute(task.id, issue);
+  const reviewPath = join(root(), 'review.json');
+  const exported = (await queueCommand([
+    'review-package',
+    task.id,
+    '--output',
+    reviewPath,
+    '--db',
+    path,
+  ])) as ReturnType<typeof reviewPackage>;
+  const input = {
+    attemptId: exported.attemptId,
+    candidateSha256: exported.candidateSha256,
+    reviewer: 'Independent fixture review',
+    decision: 'changes-requested',
+    summary: 'Add missing clamp handling',
+    profile: {
+      name: 'Manual',
+      provider: 'independent',
+      interface: 'manual',
+      scope: 'package-only',
+    },
+    findings: [
+      {
+        severity: 'major',
+        kind: 'code',
+        files: ['clamp.mjs'],
+        criteria: ['Implement clamp'],
+        explanation: 'The implementation returns out-of-range values.',
+        request: 'Clamp values to the inclusive range.',
+      },
+    ],
+  };
+  expect(() =>
+    store.recordReview(
+      task.id,
+      parseReview({ ...input, candidateSha256: 'a'.repeat(64) }),
+    ),
+  ).toThrow('current candidate');
+  const findingsPath = join(root(), 'findings.json');
+  writeFileSync(findingsPath, JSON.stringify(input));
+  const review = (await queueCommand([
+    'record-review',
+    task.id,
+    '--file',
+    findingsPath,
+    '--db',
+    path,
+  ])) as ReturnType<QueueStore['recordReview']>;
+  expect(() => store.recordReview(task.id, parseReview(input))).toThrow(
+    'already exists',
+  );
+  await expect(
+    controller.correct(task.id, issue, review.id, ''),
+  ).rejects.toThrow('explicit local approval');
+  await controller.correct(
+    task.id,
+    issue,
+    review.id,
+    'Maintainer approved this review',
+  );
+  const output = reviewPackage(store, task.id, join(root(), 'second.json'));
+  expect(output.attemptId).not.toBe(exported.attemptId);
+  const data = JSON.parse(readFileSync(output.output, 'utf8')) as Record<
+    string,
+    unknown
+  >;
+  expect(data).toMatchObject({
+    candidate: { changedFiles: ['clamp.mjs'] },
+    executionHistory: [
+      {
+        attemptId: exported.attemptId,
+        rounds: [{ implementationSummary: 'Kept the existing exports.' }],
+      },
+      {
+        attemptId: output.attemptId,
+        correction: { review: { id: review.id } },
+        outcome: 'candidate-ready',
+      },
+    ],
+    reviews: [{ id: review.id }],
+    reviewStatus: 'pending',
+  });
+  expect(
+    runtime.calls.filter(({ mode }) => mode === 'coding').at(-1),
+  ).toMatchObject({
+    session: null,
+    prompt: expect.stringContaining(input.findings[0]!.request),
+  });
+  expect(
+    store.recordReview(
+      task.id,
+      parseReview({
+        ...input,
+        attemptId: output.attemptId,
+        candidateSha256: output.candidateSha256,
+        decision: 'accepted',
+        findings: [],
+      }),
+    ).decision,
+  ).toBe('accepted');
+});
+
+it.each([
+  'design',
+  'specification',
+  'permission',
+  'paid-implementation',
+  'stale-worktree',
+])('refuses a correction for %s before invoking coding', async (kind) => {
+  const { store, manager, task } = fixture();
+  const runtime = new Runtime();
+  const controller = new ExecutionController(store, manager, runtime);
+  await controller.execute(task.id, issue);
+  const candidate = store.latestExecution(task.id) as ExecutionRecord;
+  const review = store.recordReview(
+    task.id,
+    parseReview({
+      attemptId: candidate.attemptId,
+      candidateSha256: candidate.reviewSha256,
+      reviewer: 'Independent fixture review',
+      decision: 'changes-requested',
+      summary: 'Needs a decision',
+      findings: [
+        {
+          kind: kind === 'stale-worktree' ? 'code' : kind,
+          severity: 'blocking',
+          files: ['clamp.mjs'],
+          criteria: [],
+          explanation: 'Fixture finding',
+          request: 'Change the fixture',
+        },
+      ],
+    }),
+  );
+  if (kind === 'stale-worktree') {
+    runtime.snapshotPatch = '+ manual changes';
+    await controller.correct(task.id, issue, review.id, 'Maintainer');
+    expect(store.get(task.id).reason).toContain('does not match');
+  } else {
+    await expect(
+      controller.correct(task.id, issue, review.id, 'Maintainer'),
+    ).rejects.toThrow('current code findings');
+  }
+  expect(runtime.calls.filter(({ mode }) => mode === 'coding')).toHaveLength(1);
+});
+
 it('retains a native session and individual validations; continues only the explicit session for bounded repair', async () => {
   const { store, manager, task, environment } = fixture();
   const runtime = new Runtime();
@@ -408,6 +573,277 @@ it('retains uncertain execution across reopen and refuses replay, competing clai
     reopened.transition(task.id, 'failed', 'Manual release'),
   ).toThrow('verified termination');
 });
+it('keeps takeover pending until the worker stops, then resumes from an inspected baseline', async () => {
+  const { store, manager, task, path } = fixture();
+  const manualDiff = '+ manual fixture edit';
+  let enterCoding!: () => void;
+  const entered = new Promise<void>((resolve) => {
+    enterCoding = resolve;
+  });
+  let releaseWorker!: () => void;
+  const stopped = new Promise<void>((resolve) => {
+    releaseWorker = resolve;
+  });
+  class ControllableRuntime extends Runtime {
+    override async run(
+      ...args: Parameters<ExecutionRuntime['run']>
+    ): Promise<ProcessResult> {
+      if (args[3].mode === 'coding' && !args[3].session) {
+        args[6]('1'.repeat(64));
+        args[7]?.(
+          JSON.stringify({ type: 'step_start', sessionID: 'ses_fixture' }),
+        );
+        enterCoding();
+        await stopped;
+        expect(args[8]?.()).toBe('takeover');
+        return { ...successful, limited: true, limitReason: 'control' };
+      }
+      const result = await super.run(...args);
+      if (args[3].mode === 'evidence')
+        writeFileSync(`${args[4]}.stdout`, manualDiff);
+      return result;
+    }
+  }
+  const runtime = new ControllableRuntime();
+  const running = new ExecutionController(store, manager, runtime).execute(
+    task.id,
+    issue,
+  );
+  await entered;
+  const reopened = new QueueStore(path);
+  stores.push(reopened);
+  const controller = new ExecutionController(reopened, manager, runtime);
+  reopened.requestExecutionControl(task.id, 'takeover');
+  try {
+    expect(() => controller.reconcile(task.id)).toThrow('lock unavailable');
+    await expect(controller.execute(task.id, issue, true)).rejects.toThrow(
+      'lock unavailable',
+    );
+    expect(reopened.get(task.id).status).toBe('running');
+  } finally {
+    releaseWorker();
+  }
+  await running;
+  expect(reopened.get(task.id).status).toBe('paused');
+  const paused = reopened.latestExecution(task.id) as ExecutionRecord;
+  expect(paused).toMatchObject({
+    outcome: 'paused',
+    controlAction: 'takeover',
+    session: 'ses_fixture',
+  });
+  await controller.execute(task.id, issue, true);
+  const resumed = reopened.latestExecution(task.id) as ExecutionRecord;
+  expect(resumed).toMatchObject({
+    outcome: 'candidate-ready',
+    resumedFrom: paused.attemptId,
+  });
+  expect(resumed.attemptId).not.toBe(paused.attemptId);
+  expect(readFileSync(resumed.handoff!, 'utf8')).toContain(manualDiff);
+  expect(runtime.calls.find((call) => call.mode === 'coding')).toMatchObject({
+    session: 'ses_fixture',
+  });
+});
+
+it('fences exact abandoned Docker workers after supervisor death and refuses another daemon', async () => {
+  const { store, manager, task, path, environment } = fixture();
+  const child = spawn(
+    process.execPath,
+    [
+      '--import',
+      'tsx',
+      '--input-type=module',
+      '-e',
+      `import { QueueStore } from './src/queue/store.ts';
+     import { executionLock } from './src/execution/lock.ts';
+     const [path, id, raw] = process.argv.slice(1);
+     const unlock = executionLock(path);
+     const store = new QueueStore(path);
+     store.claim(id, JSON.parse(raw), ({ attemptId }) => ({
+       attemptId, lockedSupervisor: true, dockerDaemon: 'fixture-daemon', stage: 'coding-0',
+       containers: ['a'.repeat(64)], session: 'ses_fixture', rounds: [], unresolved: [],
+     }));
+     console.log('claimed');
+     setInterval(() => {}, 1000);`,
+      path,
+      task.id,
+      JSON.stringify(issue),
+    ],
+    { stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  try {
+    await once(child.stdout, 'data', { signal: AbortSignal.timeout(5000) });
+    const active = store.activeExecution(task.id)!;
+    const container = 'a'.repeat(64);
+    let daemon = 'wrong-daemon';
+    let removed = false;
+    const commands: string[][] = [];
+    const runtime = new ExecutionRuntime(
+      new DockerRuntime((_, args) => {
+        commands.push(args);
+        if (args[0] === 'info') return daemon;
+        if (args[0] === 'ps') {
+          if (removed) return '';
+          return args.includes('--filter')
+            ? `${container} cf-code-${active.attemptId}-0`
+            : container;
+        }
+        if (args[0] === 'rm') removed = true;
+        return '';
+      }),
+    );
+    const controller = new ExecutionController(store, manager, runtime);
+    expect(() => controller.reconcile(task.id)).toThrow('lock unavailable');
+    const exit = once(child, 'exit');
+    child.kill('SIGKILL');
+    await exit;
+    expect(() => controller.reconcile(task.id)).toThrow(
+      'daemon identity changed',
+    );
+    expect(store.get(task.id).status).toBe('running');
+    daemon = 'fixture-daemon';
+    const restarted = new QueueStore(path);
+    stores.push(restarted);
+    restarted.requestExecutionControl(task.id, 'force-stop');
+    new ExecutionController(restarted, manager, runtime).reconcile(task.id);
+    expect(store.get(task.id).status).toBe('paused');
+    expect(commands).toContainEqual(['stop', '--time', '0', container]);
+    expect(commands).toContainEqual(['rm', container]);
+    expect(commands.flat()).toContain(
+      `label=code-foundry.owner=${environment.owner}`,
+    );
+    expect(store.latestExecution(task.id)).toMatchObject({
+      reconciliation: { retiredContainers: [container], ready: true },
+    });
+  } finally {
+    child.kill('SIGKILL');
+  }
+});
+
+it('defers a pressured task and runs the next independently approved ready task', async () => {
+  const { store, manager, environment, task } = fixture();
+  const prepare = (number: number, project: Project) => {
+    const snapshot = { ...issue, number };
+    const queued = store.enqueue(snapshot, project, 'Approved independently');
+    const claim = store.claim(queued.id, snapshot);
+    if ('blocked' in claim) throw new Error('Unexpected fixture blocker');
+    const prepared = {
+      ...environment,
+      taskId: queued.id,
+      owner: `fixture-owner-${number}`,
+      attemptId: claim.attemptId,
+      status: 'preparing' as const,
+    };
+    store.reserveEnvironment(prepared, claim.token);
+    store.saveEnvironment({ ...prepared, status: 'ready' }, claim.token);
+    return queued;
+  };
+  const deferred = prepare(2, {
+    ...task.project,
+    profiles: {
+      local: {
+        ...task.profile,
+        admission: { minAvailableRamMiB: Number.MAX_SAFE_INTEGER },
+      },
+    },
+  });
+  const next = prepare(3, task.project);
+  const result = await new ExecutionController(
+    store,
+    manager,
+    new Runtime(),
+  ).executeNext((queued) => ({
+    ...issue,
+    number: queued.number,
+    ...(queued.id === task.id ? { state: 'closed' } : {}),
+  }));
+  expect(result).toMatchObject({
+    skipped: [
+      { id: task.id },
+      { id: deferred.id, reason: 'Resource admission deferred' },
+    ],
+    result: { task: { id: next.id, status: 'candidate-ready' } },
+  });
+  expect(store.get(task.id).status).toBe('blocked');
+  expect(store.attempts(deferred.id)).toHaveLength(1);
+});
+
+it('records context exhaustion and supports explicit fresh-session recovery', async () => {
+  const { store, manager, task } = fixture();
+  class ContextRuntime extends Runtime {
+    exhaust = true;
+    override async run(
+      ...args: Parameters<ExecutionRuntime['run']>
+    ): Promise<ProcessResult> {
+      if (args[3].mode !== 'coding' || !this.exhaust) return super.run(...args);
+      this.exhaust = false;
+      args[6]('1'.repeat(64));
+      args[7]?.(
+        JSON.stringify({
+          type: 'error',
+          sessionID: 'ses_old',
+          error: { name: 'ContextOverflowError' },
+        }),
+      );
+      return { ...successful, exit: 1 };
+    }
+  }
+  const runtime = new ContextRuntime();
+  const controller = new ExecutionController(store, manager, runtime);
+  await controller.execute(task.id, issue);
+  const exhausted = store.latestExecution(task.id) as ExecutionRecord;
+  expect(exhausted).toMatchObject({
+    outcome: 'needs-local-repair',
+    session: 'ses_old',
+  });
+  await controller.execute(task.id, issue, true, true);
+  const resumed = store.latestExecution(task.id) as ExecutionRecord;
+  expect(resumed).toMatchObject({
+    outcome: 'candidate-ready',
+    session: 'ses_fixture',
+    resumedFrom: exhausted.attemptId,
+  });
+  expect(readFileSync(resumed.handoff!, 'utf8')).toContain(
+    'Context exhausted'.toLowerCase(),
+  );
+  expect(runtime.calls.find((call) => call.mode === 'coding')).toMatchObject({
+    session: null,
+  });
+});
+
+it('recognizes a run of repeated native tool inputs', () => {
+  const events = new SessionEvents();
+  const tool = JSON.stringify({
+    type: 'tool_use',
+    sessionID: 'ses_fixture',
+    part: { tool: 'bash', state: { input: { command: 'node --test' } } },
+  });
+  for (let index = 0; index < 3; index++) events.accept(tool);
+  expect(events.toolLoop).toBe(false);
+  events.accept(tool);
+  expect(events.toolLoop).toBe(true);
+});
+
+it('interrupts a live attached process within the control polling bound', async () => {
+  const prefix = join(root(), 'capture');
+  let requested = false;
+  const result = await capture(
+    process.execPath,
+    ['-e', 'console.log("ready"); setInterval(() => {}, 1000)'],
+    prefix,
+    Date.now() + 4000,
+    () => {
+      requested = true;
+    },
+    () => requested,
+  );
+  expect(result).toMatchObject({
+    limited: true,
+    limitReason: 'control',
+    signal: 'SIGKILL',
+  });
+  expect(readFileSync(`${prefix}.stdout`, 'utf8')).toBe('ready\n');
+});
+
 it('reported ambiguity blocks validation and repair even after a complete exit-zero session', async () => {
   const { store, manager, task } = fixture();
   const runtime = new Runtime();

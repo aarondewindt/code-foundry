@@ -132,8 +132,9 @@ The VM has two vCPUs, 3 GiB RAM, a 64 MiB translation cache and a disposable
 24 GiB virtual disk. These development VM budgets reduce pressure on the editor's
 host; worker cgroup limits remain unchanged. Software
 emulation is slower than native execution; first-use package installation also
-costs time. The default guest lifetime is 1,800 seconds, independently enforced by
-GNU timeout even if the controller crashes. `--timeout` accepts 60–3,600 seconds.
+costs time. The guest defaults to 1,800 seconds for smoke and 2,400 seconds for
+full integration, including takeover and resume. GNU timeout enforces the
+lifetime if the controller crashes. `--timeout` accepts 60–3,600 seconds.
 Boot, package setup, smoke, Docker calls and environment integration have separate
 finite deadlines. These do not relax the worker's existing security/resource
 profile. Downloads are separately size/time bounded and caches are checksum keyed.

@@ -23,6 +23,7 @@ export async function runEnvironmentFixture(options: {
   reportPath?: string;
   verifyFailures?: boolean;
   executionFixture?: boolean;
+  reviewFixture?: boolean;
   onReady?: (
     store: QueueStore,
     manager: EnvironmentManager,
@@ -124,7 +125,7 @@ export async function runEnvironmentFixture(options: {
       : 'Guest evidence only. Actual Ubuntu/VS Code path editing and deployment enforcement remain separate host acceptance.',
   };
   try {
-    for (const number of [1, 2]) {
+    for (const number of options.reviewFixture ? [1] : [1, 2]) {
       const modelGateway = join(root, `model${number}`);
       const gateway = spawn(
         'python3',
@@ -148,9 +149,11 @@ export async function runEnvironmentFixture(options: {
         number,
         url: `https://github.com/synthetic/fixture/issues/${number}`,
         title: 'Explicit synthetic integration fixture',
-        body: options.executionFixture
-          ? 'Explicitly approved synthetic implementation ticket: implement named ESM clamp(value,min,max), returning min for values below min, max above max, and the unchanged value otherwise. Change only clamp.mjs and preserve clamp.test.mjs. No network, external services, GitHub operations or publication are authorized. This local fixture is not a GitHub issue admission.'
-          : 'Synthetic verification, not a GitHub issue admission',
+        body: options.reviewFixture
+          ? 'Implement clamp and preserve clamp.test.mjs.\n\n- [ ] Clamp values to the inclusive bounds.\n- [ ] Document the boundary with an "inclusive bounds" source comment in clamp.mjs.'
+          : options.executionFixture
+            ? 'Explicitly approved synthetic implementation ticket: implement named ESM clamp(value,min,max), returning min for values below min, max above max, and the unchanged value otherwise. Change only clamp.mjs and preserve clamp.test.mjs. No network, external services, GitHub operations or publication are authorized. This local fixture is not a GitHub issue admission.'
+            : 'Synthetic verification, not a GitHub issue admission',
         state: 'open',
         labels: [],
         comments: [],
@@ -227,11 +230,13 @@ export async function runEnvironmentFixture(options: {
       );
     }
     const environments = store.list().map((t) => store.environment(t.id)!);
-    assert.notEqual(
-      environments[0]!.resources.databaseId,
-      environments[1]!.resources.databaseId,
-    );
-    assert.notEqual(environments[0]!.root, environments[1]!.root);
+    if (!options.reviewFixture) {
+      assert.notEqual(
+        environments[0]!.resources.databaseId,
+        environments[1]!.resources.databaseId,
+      );
+      assert.notEqual(environments[0]!.root, environments[1]!.root);
+    }
     report.complete = true;
   } catch (error) {
     report.error =

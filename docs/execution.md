@@ -28,9 +28,9 @@ Existing profiles remain valid. Other providers/agents fail closed pending
 verification. No Codex backend is provided.
 
 SQLite records an immutable claim snapshot and a separate execution reservation
-before launch, then records exact container IDs, session ID, process outcomes,
+in the same transaction before launch, then records exact container IDs, session ID, process outcomes,
 individual validation results, timestamps and private artifact paths. The state
-schema migrates existing queue/environment databases to version 3. Only one
+schema migrates existing queue/environment databases to version 5. Only one
 execution claim is active. Repeating `execute` cannot replay a running or terminal
 task. Raw JSONL and stderr are private files, capped at 2 MiB per stream, outside
 worker mounts. Native session data stays in the retained task directory. Treat
@@ -56,10 +56,7 @@ the logs. Container-local `timeout` and the live controller provide additional
 limits. Durable claims remain held after uncertain termination or unexpected
 runtime failure; the execution record reports a blocked outcome while the task's
 running claim stays reserved. Manual task transitions cannot release an active execution.
-There is no automatic crash replay, resource cleanup or stale-PID killing;
-recovery/reconciliation is subsequent work under issue #6.
-Docker-daemon failure and host-wide recovery are not verified here; a retained
-claim alone is not evidence that a worker stopped.
+Use the recovery commands below after an interruption.
 
 The budget proxy buffers each model response, including SSE, and counts parallel
 tool calls before releasing any tool arguments to OpenCode. A batch exceeding
@@ -98,7 +95,59 @@ and explicit-session continuations use the same title. The execution record's
 `modelDenial` identifies a denied route, concurrency, budget, transport, status or
 response-protocol condition without recording request/response contents.
 
+## Pause, takeover and recovery
+
+[Issue #6](https://github.com/aarondewindt/code-foundry/issues/6) specifies
+recovery. These commands share the same SQLite state and supervisor lock.
+
+```sh
+node dist/cli.js pause TASK_ID --db /private/state.sqlite
+node dist/cli.js takeover TASK_ID --db /private/state.sqlite
+node dist/cli.js force-stop TASK_ID --db /private/state.sqlite
+node dist/cli.js reconcile TASK_ID --db /private/state.sqlite
+node dist/cli.js resume TASK_ID --db /private/state.sqlite
+node dist/cli.js execute-next --db /private/state.sqlite
+node dist/cli.js events TASK_ID --db /private/state.sqlite
+node dist/cli.js logs ATTEMPT_ID --db /private/state.sqlite
+node dist/cli.js pressure --db /private/state.sqlite
+```
+
+A live supervisor consumes a durable stop request. Pause and takeover give
+Docker a two-second termination grace period. Force-stop requests zero grace.
+Wait for the matching attempt to show `paused` in `task` before editing. A
+`stop-requested` response is an acknowledgment only.
+
+After supervisor exit, `reconcile` acquires the kernel lock, checks the Docker
+daemon identity, and fences the interrupted attempt's exact containers by
+stopping and retiring them. The private attached logs, worktree, session data
+and task database are retained. The command leaves the execution active if
+termination or daemon ownership cannot be verified. After verified termination,
+it records whether B2 readiness still passes and releases the claim. Keep the
+SQLite state, lock path and retained resources together across restarts.
+Attempts recorded by the previous supervisor version did not use the lock.
+For those attempts, verify that the earlier supervisor has exited before using
+`reconcile --legacy-supervisor-exited`.
+
+`resume` revalidates the approved issue and runs B2 readiness before starting a
+new attempt. The recorded base and branch must still match. The new attempt
+captures the tracked diff and lists untracked files before continuing the native
+OpenCode session. Use `--fresh-session` if the native session is unavailable.
+The private handoff includes the issue, current changes, earlier validation,
+blockers and next steps. No previous command is automatically replayed during
+reconciliation.
+
+`execute-next` selects from approved tasks with ready environments, skipping
+blocked and deferred tasks. A profile can set `admission.maxCpuLoadPerCore`,
+`admission.minAvailableRamMiB`, `admission.maxGpuPercent` or
+`admission.minAvailableVramMiB`. GPU limits defer admission when NVIDIA
+telemetry is unavailable. Resource samples reflect the supervisor's view.
+Execution also stops after four consecutive identical native tool inputs or a
+repeated set of failing validation command exits within an attempt.
+
 ## Verification and evidence limits
+
+The [B4 results](experiments/b4/results.json) record the recovery fixtures and
+restricted-guest takeover and resume trial.
 
 The [retained B3 results](experiments/b3/results.json) distinguish local controller
 verification from real-model acceptance and preserve unsuccessful trial evidence.
