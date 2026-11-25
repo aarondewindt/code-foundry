@@ -608,6 +608,7 @@ export class ExecutionController {
           nextSteps: [
             'Inspect current worktree and preserve manual edits',
             'Review previous validation evidence',
+            'Resolve uncertain effects before rerunning any earlier command',
             'Continue only the approved ticket',
           ],
         };

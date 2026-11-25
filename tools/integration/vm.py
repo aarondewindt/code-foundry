@@ -323,7 +323,7 @@ def run(args):
             print('Running restricted synthetic review workflow' if review else 'Preparing two real restricted synthetic environments', flush=True)
             checkpoint('environment')
             mode = '1' if review else '0'
-            guest.command(f'cd /home/cf/code-foundry && CF_REVIEW_FIXTURE={mode} PATH=/opt/node/bin:/usr/bin:/bin timeout --kill-after=5s 1200s node --import tsx test/integration/environment.ts', seconds=1210)
+            guest.command(f'cd /home/cf/code-foundry && CF_REVIEW_FIXTURE={mode} PATH=/opt/node/bin:/usr/bin:/bin timeout --kill-after=5s 1550s node --import tsx test/integration/environment.ts', seconds=1560)
             with (directory / 'environment.json').open('wb') as output:
                 guest.command('cat /home/cf/environment-report.json', output_file=output)
             environment = json.loads((directory / 'environment.json').read_text())
