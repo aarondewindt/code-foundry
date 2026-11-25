@@ -1,5 +1,10 @@
 /** Shared real Git/Docker/PG18 fixture; callers select retention explicitly. */
-import { spawn, execFileSync, type ChildProcess } from 'node:child_process';
+import {
+  spawn,
+  spawnSync,
+  execFileSync,
+  type ChildProcess,
+} from 'node:child_process';
 import { once } from 'node:events';
 import { strict as assert } from 'node:assert';
 import {
@@ -12,6 +17,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EnvironmentManager } from '../src/environment/manager.js';
+import { run } from '../src/environment/system.js';
 import { DockerRuntime, reviewedImages } from '../src/environment/runtime.js';
 import { QueueStore } from '../src/queue/store.js';
 import type { Project } from '../src/queue/config.js';
@@ -108,6 +114,8 @@ export async function runEnvironmentFixture(options: {
     },
     allowedOverrides: [],
   };
+  let first: { environment: Environment; issue: IssueSnapshot } | undefined;
+  let checking: Environment | undefined;
   const report: {
     complete: boolean;
     environments: unknown[];
@@ -115,6 +123,13 @@ export async function runEnvironmentFixture(options: {
     diffs: string[];
     failureChecks: string[];
     error?: string;
+    dockerFailure?: string;
+    readinessFailure?: {
+      exit: string;
+      oomKilled: boolean;
+      check?: string;
+      exception?: string;
+    };
   } = {
     complete: false,
     environments: [],
@@ -124,6 +139,29 @@ export async function runEnvironmentFixture(options: {
       ? 'Open both printed worktree paths in host VS Code and a devcontainer with identical absolute mounts; verify editing/diff. This is not automated.'
       : 'Guest evidence only. Actual Ubuntu/VS Code path editing and deployment enforcement remain separate host acceptance.',
   };
+  const diagnosticRuntime = new DockerRuntime((program, args, input) => {
+    try {
+      return run(program, args, input);
+    } catch (error) {
+      if (
+        program === 'docker' &&
+        [
+          'create',
+          'exec',
+          'info',
+          'inspect',
+          'start',
+          'stop',
+          'volume',
+        ].includes(args[0] ?? '')
+      )
+        report.dockerFailure =
+          args[0] === 'start' && args.includes('--attach')
+            ? 'start-readiness-probe'
+            : args[0]!;
+      throw error;
+    }
+  });
   try {
     for (const number of options.reviewFixture ? [1] : [1, 2]) {
       const modelGateway = join(root, `model${number}`);
@@ -168,7 +206,7 @@ export async function runEnvironmentFixture(options: {
         project,
         'Operator explicitly invoked disposable integration verification',
       );
-      const manager = new EnvironmentManager(store, db);
+      const manager = new EnvironmentManager(store, db, diagnosticRuntime);
       const env = manager.prepare(task.id, issue, {
         source,
         shared: join(root, 'shared'),
@@ -196,14 +234,8 @@ export async function runEnvironmentFixture(options: {
       store.close();
       store = new QueueStore(db);
       assert.deepEqual(store.environment(task.id), env);
-      new EnvironmentManager(store, db).check(env);
-      if (number === 1 && options.onReady)
-        await options.onReady(
-          store,
-          new EnvironmentManager(store, db),
-          env,
-          issue,
-        );
+
+      if (number === 1) first = { environment: env, issue };
       if (options.verifyFailures) {
         const manifest = join(root, `model${number}.gateway.json`);
         const originalManifest = readFileSync(manifest, 'utf8');
@@ -211,7 +243,9 @@ export async function runEnvironmentFixture(options: {
           const changed = JSON.parse(originalManifest) as { model: string };
           changed.model = 'forbidden';
           writeFileSync(manifest, JSON.stringify(changed));
-          assert.throws(() => new EnvironmentManager(store, db).check(env));
+          assert.throws(() =>
+            new EnvironmentManager(store, db, diagnosticRuntime).check(env),
+          );
         } finally {
           writeFileSync(manifest, originalManifest);
         }
@@ -237,10 +271,78 @@ export async function runEnvironmentFixture(options: {
       );
       assert.notEqual(environments[0]!.root, environments[1]!.root);
     }
+    if (first && options.onReady) {
+      checking = first.environment;
+      await options.onReady(
+        store,
+        new EnvironmentManager(store, db, diagnosticRuntime),
+        first.environment,
+        first.issue,
+      );
+      checking = undefined;
+    }
+    for (const environment of environments.slice(1)) {
+      checking = environment;
+      new EnvironmentManager(store, db, diagnosticRuntime).check(environment);
+      checking = undefined;
+    }
     report.complete = true;
   } catch (error) {
     report.error =
       error instanceof Error ? error.message : 'Integration failed';
+    const failed = store
+      .list()
+      .map(({ id }) => store.environment(id))
+      .find(
+        (environment) =>
+          environment?.status === 'failed' &&
+          environment.stage === 'worker-readiness',
+      );
+    const id = (failed ?? checking)?.resources.workerId;
+    if (id && /^[a-f0-9]{64}$/.test(id)) {
+      try {
+        const runtime = new DockerRuntime();
+        const [exit = '', oomKilled] = runtime
+          .execute('docker', [
+            'inspect',
+            '--format',
+            '{{.State.ExitCode}} {{.State.OOMKilled}}',
+            id,
+          ])
+          .split(' ');
+        // Docker logs can contain task data. Persist only fixed-format diagnostic identifiers.
+        const logs = spawnSync('docker', ['logs', '--tail', '30', id], {
+          encoding: 'utf8',
+          timeout: 3000,
+          maxBuffer: 32768,
+          env: {
+            PATH: process.env.PATH ?? '/usr/bin:/bin',
+            HOME: '/nonexistent',
+            LC_ALL: 'C',
+          },
+        });
+        const diagnostic = logs.stderr ?? '';
+        const check =
+          /^RuntimeError: Readiness check failed: ([a-zA-Z]+)(?::[^\n]*)?$/m.exec(
+            diagnostic,
+          )?.[1];
+        const exception =
+          /^(TimeoutExpired|TimeoutError|ConnectionResetError|FileNotFoundError|PermissionError|JSONDecodeError|OSError):/m.exec(
+            diagnostic,
+          )?.[1] ??
+          /^subprocess\.(TimeoutExpired|CalledProcessError):/m.exec(
+            diagnostic,
+          )?.[1];
+        report.readinessFailure = {
+          exit,
+          oomKilled: oomKilled === 'true',
+          ...(check ? { check } : {}),
+          ...(exception ? { exception } : {}),
+        };
+      } catch {
+        // Preserve the original preparation failure if inspection also fails.
+      }
+    }
   } finally {
     store.close();
     if (!options.retainGateways) {

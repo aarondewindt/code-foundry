@@ -3,9 +3,12 @@ import { verifyReviewCorrection } from './review.js';
 import { strict as assert } from 'node:assert';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
+import { QueueStore } from '../../src/queue/store.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { runEnvironmentFixture } from '../environment-fixture.js';
 import { ExecutionRuntime } from '../../src/execution/runtime.js';
+import { EnvironmentManager } from '../../src/environment/manager.js';
 import { reviewedImages } from '../../src/environment/runtime.js';
 import {
   ExecutionController,
@@ -142,6 +145,67 @@ try {
           assert.equal(existsSync(importMarker), false);
           return;
         }
+        const child = spawn(
+          process.execPath,
+          [
+            '--import',
+            'tsx',
+            fileURLToPath(new URL('./recovery.ts', import.meta.url)),
+            store.path,
+            environment.taskId,
+            JSON.stringify(issue),
+          ],
+          { stdio: ['ignore', 'ignore', 'inherit'] },
+        );
+        const timer = setTimeout(() => child.kill('SIGTERM'), 540000);
+        try {
+          const [code, signal] = await once(child, 'exit');
+          assert.equal(code, null);
+          assert.equal(signal, 'SIGKILL');
+        } finally {
+          clearTimeout(timer);
+        }
+        const restarted = new QueueStore(store.path);
+        let interrupted: ExecutionRecord;
+        try {
+          assert.equal(restarted.get(environment.taskId).status, 'running');
+          interrupted = restarted.activeExecution(environment.taskId)
+            ?.payload as ExecutionRecord;
+          assert.equal(interrupted.stage, 'coding-0');
+          assert.ok(interrupted.session);
+          assert.equal(interrupted.rounds.length, 0);
+          assert.match(
+            readFileSync(`${environment.worktree}/clamp.mjs`, 'utf8'),
+            /export const clamp = \(value\) => value/,
+          );
+          const controller = new ExecutionController(
+            restarted,
+            new EnvironmentManager(restarted, store.path),
+          );
+          await assert.rejects(
+            controller.execute(environment.taskId, issue, true),
+            /not claimable/,
+          );
+          assert.equal(
+            restarted.activeExecution(environment.taskId)?.attemptId,
+            interrupted.attemptId,
+          );
+          const recovered = controller.reconcile(environment.taskId) as {
+            execution: ExecutionRecord;
+          };
+          assert.equal(recovered.execution.outcome, 'paused');
+          assert.equal(recovered.execution.reconciliation?.ready, true);
+          assert.ok(
+            recovered.execution.reconciliation?.retiredContainers.length,
+          );
+          assert.equal(recovered.execution.session, interrupted.session);
+          assert.equal(
+            restarted.environment(environment.taskId)?.resources.databaseId,
+            environment.resources.databaseId,
+          );
+        } finally {
+          restarted.close();
+        }
         class TakeoverRuntime extends ExecutionRuntime {
           override async run(...args: Parameters<ExecutionRuntime['run']>) {
             if (args[3].mode === 'coding') {
@@ -163,10 +227,13 @@ try {
           store,
           manager,
           new TakeoverRuntime(manager.runtime),
-        ).execute(environment.taskId, issue)) as { execution: ExecutionRecord };
+        ).execute(environment.taskId, issue, true)) as {
+          execution: ExecutionRecord;
+        };
         assert.equal(store.get(environment.taskId).status, 'paused');
         assert.equal(paused.execution.controlAction, 'takeover');
-        assert.ok(paused.execution.session);
+        assert.equal(paused.execution.session, interrupted.session);
+        assert.equal(paused.execution.resumedFrom, interrupted.attemptId);
         for (const id of paused.execution.containers)
           assert.equal(
             manager.runtime.execute('docker', [
@@ -225,6 +292,10 @@ try {
               ...result.execution,
               testFilePreserved: true,
               takeoverStoppedWorkers: true,
+              supervisorKilledDuringCoding: true,
+              reconciledAfterStoreReopen: true,
+              duplicateRestartRejected: true,
+              interruptedSessionContinued: true,
               resumedNativeSessionAfterManualEdit: true,
               taskControlledStartupModuleIgnored: true,
               implementation: readFileSync(

@@ -33,5 +33,48 @@
     "fullSuite": "Preparation of the second B2 environment failed at worker-readiness. The fixture report does not identify the underlying readiness check.",
     "vmStopped": true,
     "diskRemoved": true
+  },
+  "readinessRetry": {
+    "sourceSha256": "9cd81f5081dcebce1e20c6314e7697ced8e1e99c6028b42ba6c34295eb550b85",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "vmStopped": true,
+    "diskRemoved": true,
+    "fullSuite": "An immediate extra readiness check after reopening SQLite failed after the first environment was already prepared."
+  },
+  "crashRecoveryRetry": {
+    "sourceSha256": "a2afd63a6c8101116b39cfa8acca3c08ccd01fffcbbc7776da5c1a99b3f492c5",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "vmStopped": true,
+    "diskRemoved": true,
+    "fullSuite": "After both environments were prepared and the killed supervisor was reconciled, a guest kernel null-pointer fault in copy_process interrupted Docker during takeover. SSH lost contact and the final guest report could not be exported."
+  },
+  "singleVcpuTrial": {
+    "complete": false,
+    "reason": "Docker rejected the verified two-CPU worker quota on a one-vCPU guest. The compatibility smoke test stopped before environment preparation.",
+    "vmStopped": true,
+    "diskRemoved": true
+  },
+  "completedRecoveryTrial": {
+    "scope": "Real pinned OpenCode binary with scripted synthetic model responses, not real Ollama inference",
+    "complete": true,
+    "elapsedSeconds": 2006.08,
+    "sourceSha256": "eaeffc93ed4e8281a2f6acdeb4237b29b5c7f7e63f5c48ec4355049207f95a08",
+    "reviewedImagesArchiveSha256": "eefc9f58da8f07c5f175948b15a4e5498d5a506efaddad8d8d2080134ab12a0b",
+    "implementationSha256": "24c447d218f12d5f3b8965f1cdf75dfd8f776d9671bead383e6107d08f57ab79",
+    "readyEnvironments": 2,
+    "secondEnvironmentRecheckedAfterRecovery": true,
+    "supervisorKilledDuringCoding": true,
+    "reconciledAfterStoreReopen": true,
+    "duplicateRestartRejected": true,
+    "interruptedSessionContinued": true,
+    "takeoverStoppedWorkers": true,
+    "resumedNativeSessionAfterManualEdit": true,
+    "testFilePreserved": true,
+    "taskControlledStartupModuleIgnored": true,
+    "validationExits": [[1], [0]],
+    "forbiddenUpstreamRequests": 0,
+    "outcome": "candidate-ready",
+    "vmStopped": true,
+    "diskRemoved": true
   }
 }

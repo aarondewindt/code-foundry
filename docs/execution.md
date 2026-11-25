@@ -177,8 +177,12 @@ node --import tsx test/execution-protocol.ts
 repair exhaustion, process/log bounds and budget enforcement. The disposable VM
 suite additionally exercises the pinned real OpenCode binary, native shell tools,
 session continuation, a failed test followed by repair, deterministic validation
-and a denied attachment write. Its model responses are scripted: this is **not
-real Ollama inference**. The existing VM CPU/memory/TCG settings, image archive,
+and a denied attachment write. The recovery fixture prepares both environments
+before coding, kills the supervisor after a native tool event and reopens SQLite.
+It checks duplicate-start refusal, worker termination, retained worktree and
+database readiness, and continuation through takeover and a manual edit. It
+checks the second environment again after the workload. The guest uses scripted
+model responses. The existing VM CPU/memory/TCG settings, image archive,
 network isolation and historical evidence limits remain unchanged.
 
 ```sh
